@@ -144,6 +144,31 @@ def create_mcp_server(workspace_path: Path | None = None) -> MCPServer:
         return service.generate_prompt(agent_type=agent_type, instruction=instruction)
 
     # -------------------------------------------------------------------------
+    # Prompts
+    # -------------------------------------------------------------------------
+
+    @mcp.prompt("start_sprint")
+    def prompt_start_sprint() -> str:
+        """Standard kick-off directive to inspect the blackboard and execute the next task."""
+        return (
+            "请开始协助开发本项目。工作流规范如下：\n"
+            "1. 首先调用 MCP 工具 `cockpit_get_ready_tasks` 获取当前里程碑和排在最前面的未完成任务；\n"
+            "2. 聚焦实现该任务的代码逻辑，并运行测试验证；\n"
+            "3. 验证通过后，调用 `cockpit_toggle_task(task_id, completed=True)` 将该任务标记为完成；\n"
+            "4. 会话结束前，调用 `cockpit_land_the_plane` 留下本次产出的交接便签。"
+        )
+
+    @mcp.prompt("handover_session")
+    def prompt_handover_session() -> str:
+        """Directive instructing the agent to wrap up cleanly and record handover notes."""
+        return (
+            "请完成当前会话的收尾工作（Landing the plane）：\n"
+            "1. 确认所有修改已自测通过；\n"
+            "2. 检查是否有新完成的任务尚未调用 `cockpit_toggle_task` 打钩；\n"
+            "3. 调用 `cockpit_land_the_plane`，详细记录你修改的文件、当前达成的进度以及留给下一个 Agent 的建议。"
+        )
+
+    # -------------------------------------------------------------------------
     # Resources
     # -------------------------------------------------------------------------
 
