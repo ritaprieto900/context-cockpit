@@ -1,6 +1,8 @@
 """Command-line interface (CLI) and server launcher for Context Cockpit."""
 
 import argparse
+import asyncio
+import json
 from pathlib import Path
 import socket
 import sys
@@ -11,6 +13,7 @@ import uvicorn
 
 from context_cockpit import __version__
 from context_cockpit.app import create_app
+from context_cockpit.mcp.server import create_mcp_server
 from context_cockpit.services.workspace import WorkspaceService
 
 BANNER = rf"""
@@ -42,7 +45,7 @@ def ensure_workspace_initialized(workspace: Path) -> None:
     """Initializes .context/ directory if not present."""
     context_dir = workspace / ".context"
     if not context_dir.exists():
-        print(f"📦 Initializing .context/ architecture at: {workspace}")
+        print(f"📦 Initializing .context/ architecture at: {workspace}", file=sys.stderr)
         context_dir.mkdir(parents=True, exist_ok=True)
 
     state_file = context_dir / "state.md"
@@ -113,15 +116,48 @@ def ensure_workspace_initialized(workspace: Path) -> None:
         )
 
 
+def print_mcp_config(workspace_path: Path) -> None:
+    """Outputs copy-pastable MCP client JSON configuration."""
+    project_root = Path(__file__).parent.parent.parent.resolve()
+    config = {
+        "mcpServers": {
+            "context-cockpit": {
+                "command": "uv",
+                "args": [
+                    "--directory",
+                    str(project_root),
+                    "run",
+                    "python",
+                    "-m",
+                    "context_cockpit.cli",
+                    "--mcp",
+                    str(workspace_path),
+                ],
+            }
+        }
+    }
+    print(json.dumps(config, indent=2, ensure_ascii=False))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Context Cockpit - Industrial Multi-Agent Developer Cockpit",
+        description="Context Cockpit - Industrial Multi-Agent Developer Cockpit & MCP Server",
     )
     parser.add_argument(
         "path",
         nargs="?",
         default=".",
         help="Workspace directory containing or to host .context/ (default: current directory)",
+    )
+    parser.add_argument(
+        "--mcp",
+        action="store_true",
+        help="Run as an MCP (Model Context Protocol) stdio server for AI agents",
+    )
+    parser.add_argument(
+        "--print-mcp-config",
+        action="store_true",
+        help="Print JSON configuration for Cursor / Claude Desktop / Antigravity MCP settings",
     )
     parser.add_argument(
         "--port",
@@ -143,18 +179,30 @@ def main() -> None:
     args = parser.parse_args()
 
     workspace_path = Path(args.path).resolve()
-    print(BANNER)
-    print(f"📁 Workspace: {workspace_path}")
+
+    if args.print_mcp_config:
+        print_mcp_config(workspace_path)
+        return
 
     # Ensure .context/ directory exists
     ensure_workspace_initialized(workspace_path)
+
+    # MCP Mode
+    if args.mcp:
+        server = create_mcp_server(workspace_path)
+        asyncio.run(server.run_stdio_async())
+        return
+
+    # Web Dashboard Mode
+    print(BANNER)
+    print(f"📁 Workspace: {workspace_path}")
 
     port = find_available_port(args.port, args.host)
     if port != args.port:
         print(f"⚠️ Port {args.port} was busy. Switched to available port: {port}")
 
     url = f"http://{args.host}:{port}"
-    print(f"🚀 Context Cockpit is running at: {url}")
+    print(f"🚀 Context Cockpit Web Console is running at: {url}")
     print("💡 Press Ctrl+C to terminate cleanly.\n")
 
     # Schedule browser opening

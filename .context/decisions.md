@@ -29,3 +29,16 @@
   1. 构建块级别（Block-level）的解析器，只对目标行做状态切换（In-place mutation），保持未变更块原始字节不变；
   2. 所有写操作采用 `filelock` 互斥保护，并写入 `path.with_suffix('.tmp.PID.UUID')`，通过 `os.replace` 原子替换原文件。
 - **影响**：彻底杜绝文件损坏风险，保证与外部编辑器（VS Code, Cursor 等）的并发共存安全。
+
+---
+
+### [ADR-003] 引入 Model Context Protocol (MCP) 统一 Agent 交互接口
+- **日期**：2026-09-30
+- **提议 Agent**：Antigravity
+- **背景**：为使 AI Agent（Cursor、Claude Desktop、Windsurf、Antigravity）能够程序化、强类型地读取与修改黑板，避免大模型直接拼写 Markdown 产生幻觉与格式漂移。
+- **决策内容**：
+  1. 引入官方 `mcp` 2.x SDK，构建高内聚的 `MCPServer`；
+  2. 暴露 7 个核心工具函数：`cockpit_get_overview`、`cockpit_get_ready_tasks`、`cockpit_toggle_task`、`cockpit_add_task`、`cockpit_create_adr`、`cockpit_land_the_plane`、`cockpit_synthesize_prompt`；
+  3. 暴露 3 个黑板实时只读资源：`cockpit://state`、`cockpit://decisions`、`cockpit://system`；
+  4. CLI 增加 `--mcp`（运行 stdio 模式）与 `--print-mcp-config`（一键输出客户端配置）。
+- **影响**：AI Agent 可直接通过函数调用精准操控黑板，变更瞬间通过 WebSocket 同步到人类的 Web 驾驶舱大屏。
