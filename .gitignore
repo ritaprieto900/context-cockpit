@@ -6,7 +6,8 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+/dist/
+!src/context_cockpit/ui/dist/
 downloads/
 eggs/
 .eggs/

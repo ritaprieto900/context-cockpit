@@ -1,5 +1,6 @@
 """FastAPI REST router for Context Cockpit endpoints."""
 
+import asyncio
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -34,7 +35,7 @@ ServiceDep = Annotated[ContextService, Depends(get_context_service)]
 @router.get("/overview", response_model=WorkspaceOverview)
 async def get_workspace_overview(service: ServiceDep) -> WorkspaceOverview:
     try:
-        return service.get_overview()
+        return await asyncio.to_thread(service.get_overview)
     except ContextNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.message)
     except CockpitError as e:
@@ -44,7 +45,7 @@ async def get_workspace_overview(service: ServiceDep) -> WorkspaceOverview:
 @router.get("/state", response_model=StateContext)
 async def get_state(service: ServiceDep) -> StateContext:
     try:
-        return service.get_state()
+        return await asyncio.to_thread(service.get_state)
     except ContextNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.message)
 
@@ -52,7 +53,7 @@ async def get_state(service: ServiceDep) -> StateContext:
 @router.get("/decisions", response_model=DecisionsContext)
 async def get_decisions(service: ServiceDep) -> DecisionsContext:
     try:
-        return service.get_decisions()
+        return await asyncio.to_thread(service.get_decisions)
     except ContextNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.message)
 
@@ -60,7 +61,7 @@ async def get_decisions(service: ServiceDep) -> DecisionsContext:
 @router.get("/system", response_model=SystemContext)
 async def get_system(service: ServiceDep) -> SystemContext:
     try:
-        return service.get_system()
+        return await asyncio.to_thread(service.get_system)
     except ContextNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.message)
 
@@ -108,7 +109,11 @@ async def create_adr(payload: CreateADRRequest, service: ServiceDep) -> Decision
 @router.post("/prompt", response_model=GeneratePromptResponse)
 async def generate_prompt(payload: GeneratePromptRequest, service: ServiceDep) -> GeneratePromptResponse:
     try:
-        result = service.generate_prompt(agent_type=payload.agent_type, instruction=payload.instruction)
+        result = await asyncio.to_thread(
+            service.generate_prompt,
+            agent_type=payload.agent_type,
+            instruction=payload.instruction,
+        )
         return GeneratePromptResponse(agent_type=payload.agent_type, prompt=result)
     except CockpitError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)

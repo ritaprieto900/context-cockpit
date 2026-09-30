@@ -78,7 +78,8 @@ def test_parse_state_extracts_all_fields():
 def test_toggle_task_preserves_structure_and_switches_state():
     # Arrange
     parser = MarkdownContextParser()
-    task_id = compute_task_id("实现 Domain 模型")
+    state_init = parser.parse_state(SAMPLE_STATE_MD)
+    task_id = state_init.tasks[1].id
 
     # Act: toggle from [ ] to [x]
     updated_md = parser.toggle_task(SAMPLE_STATE_MD, task_id, completed=True)
@@ -90,6 +91,24 @@ def test_toggle_task_preserves_structure_and_switches_state():
     # Ensure other parts remain unchanged
     assert "## 1. 当前里程碑" in updated_md
     assert "> **交接记录人**：Antigravity" in updated_md
+
+
+def test_identical_task_names_do_not_collide():
+    parser = MarkdownContextParser()
+    sample = """## 2. 任务清单
+- [ ] 编写测试
+- [ ] 编写测试
+"""
+    state = parser.parse_state(sample)
+    assert len(state.tasks) == 2
+    # Ensure distinct IDs
+    assert state.tasks[0].id != state.tasks[1].id
+
+    # Toggle only the first one
+    toggled = parser.toggle_task(sample, state.tasks[0].id, completed=True)
+    state_after = parser.parse_state(toggled)
+    assert state_after.tasks[0].completed is True
+    assert state_after.tasks[1].completed is False
 
 
 def test_toggle_task_raises_on_invalid_id():

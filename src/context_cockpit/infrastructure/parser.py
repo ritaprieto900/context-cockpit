@@ -20,11 +20,18 @@ TASK_REGEX: Final[re.Pattern[str]] = re.compile(
     r"^(?P<indent>\s*)-\s*\[(?P<checked>[ xX])\]\s*(?P<text>.+)$"
 )
 
+# Strict heading pattern for sections
+HEADING_MILESTONE: Final[re.Pattern[str]] = re.compile(r"^##\s+(1\.|.*当前里程碑|.*Milestone)", re.IGNORECASE)
+HEADING_TASKS: Final[re.Pattern[str]] = re.compile(r"^##\s+(2\.|.*任务清单|.*Task)", re.IGNORECASE)
+HEADING_BLOCKERS: Final[re.Pattern[str]] = re.compile(r"^##\s+(3\.|.*当前阻塞|.*Blocker)", re.IGNORECASE)
+HEADING_HANDOVER: Final[re.Pattern[str]] = re.compile(r"^##\s+(4\.|.*交接便签|.*Handover)", re.IGNORECASE)
 
-def compute_task_id(text: str) -> str:
-    """Computes a stable deterministic task ID based on normalized text."""
+
+def compute_task_id(text: str, index: int = 0) -> str:
+    """Computes a stable deterministic task ID incorporating position to prevent collisions."""
     normalized = " ".join(text.strip().split())
-    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:10]
+    payload = f"{index}:{normalized}"
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:10]
     return f"task-{digest}"
 
 
@@ -47,21 +54,25 @@ class MarkdownContextParser:
         current_section = ""
         handover_lines: list[str] = []
         in_handover = False
+        task_counter = 0
 
         for idx, line in enumerate(lines, start=1):
             stripped = line.strip()
 
-            # Detect section headers
-            if stripped.startswith("## 1.") or "当前里程碑" in stripped:
+            # Detect section headers strictly on heading lines
+            if HEADING_MILESTONE.match(stripped):
                 current_section = "milestone"
+                in_handover = False
                 continue
-            elif stripped.startswith("## 2.") or "任务清单" in stripped:
+            elif HEADING_TASKS.match(stripped):
                 current_section = "tasks"
+                in_handover = False
                 continue
-            elif stripped.startswith("## 3.") or "当前阻塞" in stripped:
+            elif HEADING_BLOCKERS.match(stripped):
                 current_section = "blockers"
+                in_handover = False
                 continue
-            elif stripped.startswith("## 4.") or "交接便签" in stripped:
+            elif HEADING_HANDOVER.match(stripped):
                 current_section = "handover"
                 in_handover = True
                 continue
@@ -71,11 +82,11 @@ class MarkdownContextParser:
 
             # Extract by section
             if current_section == "milestone":
-                if "当前阶段目标" in line or "里程碑" in line:
+                if "当前阶段目标" in line or "里程碑" in line or "Target" in line or "Goal" in line:
                     match = re.search(r"[:：]\s*(.+)$", line)
                     if match:
                         milestone_title = match.group(1).strip()
-                elif "负责人" in line or "Active Agent" in line:
+                elif "负责人" in line or "Active Agent" in line or "Owner" in line:
                     match = re.search(r"[:：]\s*(.+)$", line)
                     if match:
                         active_agent = match.group(1).strip()
@@ -83,10 +94,11 @@ class MarkdownContextParser:
             elif current_section == "tasks":
                 match = TASK_REGEX.match(line)
                 if match:
+                    task_counter += 1
                     indent = len(match.group("indent"))
                     checked = match.group("checked").lower() == "x"
                     task_text = match.group("text").strip()
-                    task_id = compute_task_id(task_text)
+                    task_id = compute_task_id(task_text, index=task_counter)
                     tasks.append(
                         TaskItem(
                             id=task_id,
@@ -100,7 +112,7 @@ class MarkdownContextParser:
             elif current_section == "blockers":
                 if stripped.startswith("- "):
                     blocker_text = stripped[2:].strip()
-                    if blocker_text and blocker_text != "无":
+                    if blocker_text and blocker_text != "无" and blocker_text.lower() != "none":
                         blockers.append(blocker_text)
 
             elif in_handover:
@@ -113,11 +125,11 @@ class MarkdownContextParser:
             timestamp = ""
             clean_body_lines: list[str] = []
             for hline in handover_lines:
-                if "交接记录人" in hline or "记录人" in hline:
+                if "交接记录人" in hline or "记录人" in hline or "Author" in hline:
                     m = re.search(r"[:：]\s*(\S+)", hline)
                     if m:
                         author = m.group(1).strip("*_ >")
-                elif "交接时间" in hline or "时间" in hline:
+                elif "交接时间" in hline or "时间" in hline or "Timestamp" in hline or "Time" in hline:
                     m = re.search(r"[:：]\s*(.+)$", hline)
                     if m:
                         timestamp = m.group(1).strip("*_ >")
@@ -145,26 +157,38 @@ class MarkdownContextParser:
         lines = raw_text.splitlines()
         found = False
         new_lines: list[str] = []
+        task_counter = 0
 
         target_mark = "x" if completed else " "
 
+        in_tasks_section = False
         for line in lines:
-            match = TASK_REGEX.match(line)
-            if match:
-                task_text = match.group("text").strip()
-                current_id = compute_task_id(task_text)
-                if current_id == task_id:
-                    indent = match.group("indent")
-                    new_line = f"{indent}- [{target_mark}] {task_text}"
-                    new_lines.append(new_line)
-                    found = True
-                    continue
+            stripped = line.strip()
+            if HEADING_TASKS.match(stripped):
+                in_tasks_section = True
+                new_lines.append(line)
+                continue
+            elif in_tasks_section and (stripped.startswith("## ") or stripped.startswith("---")):
+                in_tasks_section = False
+
+            if in_tasks_section:
+                match = TASK_REGEX.match(line)
+                if match:
+                    task_counter += 1
+                    task_text = match.group("text").strip()
+                    current_id = compute_task_id(task_text, index=task_counter)
+                    if current_id == task_id:
+                        indent = match.group("indent")
+                        new_line = f"{indent}- [{target_mark}] {task_text}"
+                        new_lines.append(new_line)
+                        found = True
+                        continue
+
             new_lines.append(line)
 
         if not found:
             raise TaskNotFoundError(task_id)
 
-        # Maintain trailing newline if original had it
         ending = "\n" if raw_text.endswith("\n") else ""
         return "\n".join(new_lines) + ending
 
@@ -173,23 +197,21 @@ class MarkdownContextParser:
         clean_text = task_text.strip()
         lines = raw_text.splitlines()
 
-        # Find the line index of "## 2. 任务清单"
         tasks_header_idx = -1
         next_section_idx = len(lines)
 
         for i, line in enumerate(lines):
             stripped = line.strip()
             if tasks_header_idx == -1:
-                if stripped.startswith("## 2.") or "任务清单" in stripped:
+                if HEADING_TASKS.match(stripped):
                     tasks_header_idx = i
             else:
-                # We are inside the tasks section; look for the next section
                 if stripped.startswith("## ") or stripped.startswith("---"):
                     next_section_idx = i
                     break
 
         if tasks_header_idx == -1:
-            raise ParseError("state.md", "Could not locate '## 2. 任务清单' section")
+            raise ParseError("state.md", "Could not locate Tasks section")
 
         # Find the last task bullet before next section
         insert_idx = next_section_idx
@@ -217,7 +239,7 @@ class MarkdownContextParser:
 
         handover_header_idx = -1
         for i, line in enumerate(lines):
-            if line.strip().startswith("## 4.") or "交接便签" in line:
+            if HEADING_HANDOVER.match(line.strip()):
                 handover_header_idx = i
                 break
 
@@ -230,11 +252,9 @@ class MarkdownContextParser:
             formatted_note.append(f"> {bline}")
 
         if handover_header_idx != -1:
-            # Retain everything up to the header line
             prefix = lines[: handover_header_idx + 1]
             return "\n".join(prefix) + "\n" + "\n".join(formatted_note) + "\n"
         else:
-            # Append handover note at bottom
             section = [
                 "",
                 "---",
@@ -334,44 +354,44 @@ class MarkdownContextParser:
         current_sec = ""
         for line in raw_text.splitlines():
             s = line.strip()
-            if "1. 项目基本信息" in s:
+            if re.search(r"^##\s+(1\.|.*项目基本信息|.*Project)", s):
                 current_sec = "info"
                 continue
-            elif "2. 环境与运行方式" in s:
+            elif re.search(r"^##\s+(2\.|.*环境与运行方式|.*Environment)", s):
                 current_sec = "env"
                 continue
-            elif "3. 编码规范与红线约束" in s:
+            elif re.search(r"^##\s+(3\.|.*编码规范与红线约束|.*Rules)", s):
                 current_sec = "rules"
                 continue
             elif s.startswith("## "):
                 current_sec = "other"
 
             if current_sec == "info":
-                if "项目名称" in s:
+                if "项目名称" in s or "Name" in s:
                     m = re.search(r"[:：]\s*(.+)", s)
                     if m:
                         project_name = m.group(1).strip()
-                elif "项目目标" in s:
+                elif "项目目标" in s or "Goal" in s:
                     m = re.search(r"[:：]\s*(.+)", s)
                     if m:
                         project_goal = m.group(1).strip()
-                elif "技术栈" in s:
+                elif "技术栈" in s or "Stack" in s:
                     m = re.search(r"[:：]\s*(.+)", s)
                     if m:
                         tech_stack = [item.strip() for item in m.group(1).split("/") if item.strip()]
 
             elif current_sec == "env":
-                if "启动命令" in s or "运行命令" in s:
+                if "启动命令" in s or "运行命令" in s or "Run" in s:
                     m = re.search(r"[:：]\s*`?([^`]+)`?", s)
                     if m:
                         run_command = m.group(1).strip()
-                elif "测试命令" in s:
+                elif "测试命令" in s or "Test" in s:
                     m = re.search(r"[:：]\s*`?([^`]+)`?", s)
                     if m:
                         test_command = m.group(1).strip()
 
             elif current_sec == "rules":
-                if s.startswith("- **规则") or s.startswith("- 规则"):
+                if s.startswith("- **规则") or s.startswith("- 规则") or s.startswith("- Rule"):
                     m = re.search(r"[:：]\s*(.+)", s)
                     if m:
                         rules.append(m.group(1).strip())

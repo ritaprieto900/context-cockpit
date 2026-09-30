@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Context Cockpit - 多 Agent 协同驾驶舱</title>
+  
+  <!-- Embedded High-Performance Offline Stylesheet (Zero Remote CDN Dependency) -->
+  <style>
+    :root {
+      --bg-base: #030712;
+      --bg-surface: #0f172a;
+      --bg-surface-elevated: #1e293b;
+      --bg-surface-highlight: #334155;
+      --border-subtle: #1e293b;
+      --border-strong: #334155;
+      --border-accent: rgba(14, 165, 233, 0.4);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --brand: #0ea5e9;
+      --brand-hover: #0284c7;
+      --brand-gradient: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--bg-surface-highlight); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    [v-cloak] { display: none !important; }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      background: var(--brand-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid transparent;
+    }
+    .status-pill.online {
+      background: rgba(6, 78, 59, 0.5);
+      color: #34d399;
+      border-color: rgba(5, 150, 105, 0.4);
+    }
+    .status-pill.offline {
+      background: rgba(120, 53, 15, 0.5);
+      color: #fbbf24;
+      border-color: rgba(217, 119, 6, 0.4);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status-pill.online .status-dot {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* Layout Grid */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    @media (min-width: 1024px) {
+      main {
+        grid-template-columns: 7fr 5fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .card-accent {
+      background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(30, 41, 59, 0.7) 100%);
+      border-color: var(--border-accent);
+      box-shadow: 0 12px 30px rgba(14, 165, 233, 0.08);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Progress bar */
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-surface-elevated);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--brand-gradient);
+      border-radius: 9999px;
+      transition: width 0.4s ease;
+    }
+
+    /* Task Items */
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .task-item:hover {
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-strong);
+    }
+    .task-item.completed {
+      background: rgba(15, 23, 42, 0.4);
+      border-color: transparent;
+      color: var(--text-dim);
+    }
+    .task-item.completed .task-text {
+      text-decoration: line-through;
+    }
+
+    .checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--text-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+      transition: all 0.2s;
+    }
+    .task-item:hover .checkbox {
+      border-color: var(--brand);
+    }
+    .task-item.completed .checkbox {
+      background: var(--emerald);
+      border-color: var(--emerald);
+      color: #fff;
+    }
+
+    /* Inputs and Buttons */
+    input, textarea, select {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 1px var(--brand);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-brand {
+      background: var(--brand-gradient);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.25);
+    }
+    .btn-brand:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+    .btn-brand:active {
+      transform: translateY(0);
+    }
+    .btn-secondary {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-surface-highlight);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      background: rgba(14, 165, 233, 0.95);
+      color: #fff;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      font-size: 13px;
+      font-weight: 500;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 16px;
+    }
+    .modal-content {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      max-width: 520px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+  </style>
+
+  <!-- Local Offline Scripts (Packaged locally in /vendor/) -->
+  <script src="/vendor/vue.global.prod.js"></script>
+  <script src="/vendor/marked.min.js"></script>
+</head>
+<body>
+  <div id="app" v-cloak>
+
+    <!-- Toast Notification -->
+    <div v-if="toast.show" class="toast">
+      <span>✨</span>
+      <span>{{ toast.message }}</span>
+    </div>
+
+    <!-- Header Navigation -->
+    <header>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="brand-logo">C</div>
+          <div>
+            <h1 style="font-size: 15px; font-weight: 700; letter-spacing: -0.01em;">Context Cockpit</h1>
+            <p style="font-size: 11px; color: var(--text-dim); font-family: monospace;">
+              <span>{{ overview.system.project_name || 'Loading...' }}</span>
+              <span v-if="overview.workspace_path"> • {{ overview.workspace_path }}</span>
+            </p>
+          </div>
+        </div>
+
+        <div v-if="overview.is_git" style="display: flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; background: rgba(30, 41, 59, 0.8); border: 1px solid var(--border-subtle); font-size: 11px; font-family: monospace; color: var(--text-muted);">
+          <span>⎇</span>
+          <span style="font-weight: 600; color: #a5b4fc;">{{ overview.git_branch }}</span>
+          <span v-if="overview.git_commit" style="color: var(--text-dim);">({{ overview.git_commit }})</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="status-pill" :class="wsConnected ? 'online' : 'offline'">
+          <span class="status-dot"></span>
+          <span>{{ wsConnected ? '实时协同已连接' : '重连中...' }}</span>
+        </div>
+        <button @click="fetchOverview" title="刷新状态" class="btn btn-secondary" style="padding: 6px 10px;">
+          🔄
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main>
+      <!-- Left Column: Milestone & Task Board -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+
+        <!-- Active Milestone -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--brand); letter-spacing: 0.05em;">
+              🎯 当前活跃里程碑
+            </span>
+            <span style="font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: var(--bg-surface-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle);">
+              负责人: <strong style="color: #38bdf8;">{{ overview.state.milestone.active_agent || '未分配' }}</strong>
+            </span>
+          </div>
+
+          <h2 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 12px;">
+            {{ overview.state.milestone.title || '尚未设置当前阶段目标' }}
+          </h2>
+
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+              <span>任务进度：{{ completedTasksCount }} / {{ totalTasksCount }} 项完成</span>
+              <span style="font-weight: 600;">{{ progressPercentage }}%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" :style="{ width: progressPercentage + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Task Checklist -->
+        <div class="card" style="flex: 1;">
+          <div class="card-header">
+            <h3 class="card-title"><span>📋</span> 任务清单 (Checklist)</h3>
+            <span style="font-size: 11px; color: var(--text-dim);">事务级文件锁保护 • 零 Lost Update</span>
+          </div>
+
+          <form @submit.prevent="handleAddTask" style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <input v-model="newTaskText" type="text" placeholder="输入待办任务，按回车添加..." />
+            <button type="submit" :disabled="!newTaskText.trim()" class="btn btn-brand" style="flex-shrink: 0;">
+              添加
+            </button>
+          </form>
+
+          <div style="max-height: 480px; overflow-y: auto; padding-right: 4px;">
+            <div v-for="task in overview.state.tasks" :key="task.id"
+                 @click="handleToggleTask(task)"
+                 class="task-item" :class="{ completed: task.completed }">
+              <div class="checkbox">
+                <span v-if="task.completed" style="font-size: 11px; font-weight: bold;">✓</span>
+              </div>
+              <span class="task-text" style="font-size: 13px; font-weight: 500; line-height: 1.4;">
+                {{ task.text }}
+              </span>
+            </div>
+
+            <div v-if="!overview.state.tasks || overview.state.tasks.length === 0" style="padding: 32px; text-align: center; color: var(--text-dim); font-size: 13px;">
+              当前暂无任务，请在上方输入框添加任务。
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Handover Station & ADRs -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+
+        <!-- Handover Station -->
+        <div class="card card-accent">
+          <div class="card-header">
+            <h3 class="card-title" style="color: #38bdf8;"><span>🤝</span> Agent 接力工作台 (Handover)</h3>
+            <button @click="showEditHandover = !showEditHandover" style="background: none; border: none; color: var(--text-muted); font-size: 11px; cursor: pointer;">
+              {{ showEditHandover ? '取消' : '✍️ 修改留言' }}
+            </button>
+          </div>
+
+          <!-- Edit Handover Form -->
+          <div v-if="showEditHandover" style="margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;">
+            <div>
+              <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">交接记录人</label>
+              <input v-model="editHandoverAuthor" type="text" />
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">产出与指引 (Markdown)</label>
+              <textarea v-model="editHandoverBody" rows="4" style="font-family: monospace;"></textarea>
+            </div>
+            <button @click="saveHandoverNote" class="btn btn-brand" style="width: 100%;">
+              保存交接便签
+            </button>
+          </div>
+
+          <!-- Active Handover View -->
+          <div v-else style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 8px;">
+              <span style="font-weight: 600; color: #38bdf8;">
+                记录人: {{ overview.state.handover_note?.author || '无记录' }}
+              </span>
+              <span style="color: var(--text-dim); font-family: monospace;">
+                {{ overview.state.handover_note?.timestamp || '' }}
+              </span>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); font-family: monospace; white-space: pre-wrap; max-height: 140px; overflow-y: auto; line-height: 1.6;">
+              {{ overview.state.handover_note?.body || '暂无交接便签。' }}
+            </div>
+          </div>
+
+          <!-- Prompt Synthesizer -->
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label style="font-size: 12px; font-weight: 600;">接班目标 Agent：</label>
+              <select v-model="selectedAgent" style="width: auto; padding: 4px 8px;">
+                <option value="doubao">豆包 (Doubao) [中文结构优化]</option>
+                <option value="cursor">Cursor Composer / Agent</option>
+                <option value="claude">Claude Code CLI</option>
+                <option value="generic">通用大模型 (ChatGPT / DeepSeek)</option>
+              </select>
+            </div>
+
+            <input v-model="customDirective" type="text" placeholder="可选额外指令 (例如：优先编写测试)..." />
+
+            <button @click="copyHandoverPrompt" :disabled="copyingPrompt" class="btn btn-brand" style="width: 100%; padding: 12px; font-size: 14px;">
+              <span>📋</span>
+              <span>{{ copyingPrompt ? '正在生成...' : '一键生成并复制交接提示词' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ADRs -->
+        <div class="card" style="flex: 1;">
+          <div class="card-header">
+            <h3 class="card-title"><span>🏛️</span> 架构决策记录 (ADR)</h3>
+            <button @click="showAddADRModal = true" style="background: none; border: none; color: var(--brand); font-size: 11px; font-weight: 600; cursor: pointer;">
+              + 新增决策
+            </button>
+          </div>
+
+          <div style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+            <div v-for="adr in overview.decisions.records" :key="adr.id"
+                 style="background: rgba(30, 41, 59, 0.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; font-family: monospace; font-weight: 700; color: #818cf8; background: rgba(99, 102, 241, 0.15); padding: 2px 6px; border-radius: 4px;">
+                  {{ adr.id }}
+                </span>
+                <span style="font-size: 11px; color: var(--text-dim); font-family: monospace;">{{ adr.date }}</span>
+              </div>
+              <h4 style="font-size: 13px; font-weight: 700; color: #fff;">{{ adr.title }}</h4>
+              <p style="font-size: 11px; color: var(--text-muted);"><strong style="color: #cbd5e1;">决策：</strong>{{ adr.decision }}</p>
+              <p v-if="adr.consequence" style="font-size: 11px; color: var(--text-dim);"><strong style="color: #94a3b8;">影响：</strong>{{ adr.consequence }}</p>
+            </div>
+
+            <div v-if="!overview.decisions.records || overview.decisions.records.length === 0" style="padding: 24px; text-align: center; color: var(--text-dim); font-size: 12px;">
+              暂未记录架构决策。
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Modal: Add ADR -->
+    <div v-if="showAddADRModal" class="modal-overlay">
+      <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border-subtle);">
+          <h3 style="font-size: 15px; font-weight: 700;">新增架构决策记录 (ADR)</h3>
+          <button @click="showAddADRModal = false" style="background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer;">✕</button>
+        </div>
+        <form @submit.prevent="handleCreateADR" style="display: flex; flex-direction: column; gap: 12px;">
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">决策标题</label>
+            <input v-model="newADR.title" required type="text" placeholder="例如：引入 SQLite 作为本地缓存" />
+          </div>
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">背景痛点</label>
+            <textarea v-model="newADR.context" required rows="2"></textarea>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">决策内容</label>
+            <textarea v-model="newADR.decision" required rows="2"></textarea>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">影响权衡</label>
+            <textarea v-model="newADR.consequence" required rows="2"></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+            <button type="button" @click="showAddADRModal = false" class="btn btn-secondary">取消</button>
+            <button type="submit" class="btn btn-brand">保存 ADR</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Local Vue 3 Application Script -->
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const loading = ref(false);
+        const wsConnected = ref(false);
+        const overview = ref({
+          workspace_path: '',
+          is_git: false,
+          git_branch: '',
+          git_commit: '',
+          state: {
+            milestone: { title: '', active_agent: '' },
+            tasks: [],
+            blockers: [],
+            handover_note: null,
+          },
+          decisions: { records: [] },
+          system: { project_name: '', critical_rules: [] }
+        });
+
+        const newTaskText = ref('');
+        const selectedAgent = ref('doubao');
+        const customDirective = ref('');
+        const copyingPrompt = ref(false);
+
+        const showEditHandover = ref(false);
+        const editHandoverAuthor = ref('');
+        const editHandoverBody = ref('');
+
+        const showAddADRModal = ref(false);
+        const newADR = ref({ title: '', proposer: 'Antigravity', context: '', decision: '', consequence: '' });
+
+        const toast = ref({ show: false, message: '' });
+        const triggerToast = (message) => {
+          toast.value = { show: true, message };
+          setTimeout(() => { toast.value.show = false; }, 3000);
+        };
+
+        const totalTasksCount = computed(() => overview.value.state.tasks?.length || 0);
+        const completedTasksCount = computed(() => overview.value.state.tasks?.filter(t => t.completed).length || 0);
+        const progressPercentage = computed(() => {
+          if (totalTasksCount.value === 0) return 0;
+          return Math.round((completedTasksCount.value / totalTasksCount.value) * 100);
+        });
+
+        const fetchOverview = async () => {
+          loading.value = true;
+          try {
+            const res = await fetch('/api/overview');
+            if (res.ok) {
+              const data = await res.json();
+              overview.value = data;
+              if (data.state?.handover_note) {
+                editHandoverAuthor.value = data.state.handover_note.author;
+                editHandoverBody.value = data.state.handover_note.body;
+              }
+            }
+          } catch (err) {
+            console.error('Fetch error:', err);
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        const handleToggleTask = async (task) => {
+          const targetStatus = !task.completed;
+          task.completed = targetStatus;
+          try {
+            const res = await fetch('/api/tasks/toggle', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ task_id: task.id, completed: targetStatus })
+            });
+            if (!res.ok) {
+              task.completed = !targetStatus;
+              triggerToast('修改状态失败');
+            }
+          } catch (err) {
+            task.completed = !targetStatus;
+            triggerToast('网络通信异常');
+          }
+        };
+
+        const handleAddTask = async () => {
+          if (!newTaskText.value.trim()) return;
+          const text = newTaskText.value.trim();
+          try {
+            const res = await fetch('/api/tasks', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text })
+            });
+            if (res.ok) {
+              newTaskText.value = '';
+              const updatedState = await res.json();
+              overview.value.state = updatedState;
+              triggerToast('已添加新任务');
+            }
+          } catch (err) {
+            triggerToast('添加任务失败');
+          }
+        };
+
+        const saveHandoverNote = async () => {
+          try {
+            const res = await fetch('/api/handover', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                author: editHandoverAuthor.value || 'Agent',
+                body: editHandoverBody.value
+              })
+            });
+            if (res.ok) {
+              const updatedState = await res.json();
+              overview.value.state = updatedState;
+              showEditHandover.value = false;
+              triggerToast('已更新交接便签');
+            }
+          } catch (err) {
+            triggerToast('更新便签失败');
+          }
+        };
+
+        const copyHandoverPrompt = async () => {
+          copyingPrompt.value = true;
+          try {
+            const res = await fetch('/api/prompt', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                agent_type: selectedAgent.value,
+                instruction: customDirective.value
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              await navigator.clipboard.writeText(data.prompt);
+              triggerToast('已成功复制交接提示词！');
+            }
+          } catch (err) {
+            triggerToast('生成提示词失败');
+          } finally {
+            copyingPrompt.value = false;
+          }
+        };
+
+        const handleCreateADR = async () => {
+          try {
+            const res = await fetch('/api/adrs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(newADR.value)
+            });
+            if (res.ok) {
+              const updatedDecisions = await res.json();
+              overview.value.decisions = updatedDecisions;
+              showAddADRModal.value = false;
+              newADR.value = { title: '', proposer: 'Antigravity', context: '', decision: '', consequence: '' };
+              triggerToast('已成功创建新 ADR');
+            }
+          } catch (err) {
+            triggerToast('创建 ADR 失败');
+          }
+        };
+
+        const initWebSocket = () => {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const wsUrl = `${protocol}//${window.location.host}/ws/events`;
+          let ws = new WebSocket(wsUrl);
+
+          ws.onopen = () => { wsConnected.value = true; };
+          ws.onmessage = (event) => {
+            try {
+              const msg = JSON.parse(event.data);
+              if (msg.type === 'context_updated') fetchOverview();
+            } catch (e) {}
+          };
+          ws.onclose = () => {
+            wsConnected.value = false;
+            setTimeout(initWebSocket, 2000);
+          };
+          ws.onerror = () => { ws.close(); };
+        };
+
+        onMounted(() => {
+          fetchOverview();
+          initWebSocket();
+        });
+
+        return {
+          loading,
+          wsConnected,
+          overview,
+          newTaskText,
+          selectedAgent,
+          customDirective,
+          copyingPrompt,
+          showEditHandover,
+          editHandoverAuthor,
+          editHandoverBody,
+          showAddADRModal,
+          newADR,
+          toast,
+          totalTasksCount,
+          completedTasksCount,
+          progressPercentage,
+          fetchOverview,
+          handleToggleTask,
+          handleAddTask,
+          saveHandoverNote,
+          copyHandoverPrompt,
+          handleCreateADR,
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

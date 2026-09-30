@@ -1,5 +1,6 @@
 """Application service orchestrating context business operations and persistence."""
 
+import asyncio
 from pathlib import Path
 from typing import Final
 
@@ -73,13 +74,17 @@ class ContextService:
         )
 
     # -------------------------------------------------------------------------
-    # Mutations
+    # Mutations (Transactional: Read-Modify-Write fully enclosed in file lock)
     # -------------------------------------------------------------------------
 
     async def toggle_task(self, task_id: str, completed: bool) -> StateContext:
-        raw_text, _ = self.storage.read_text(self.workspace.state_file)
-        updated_text = self.parser.toggle_task(raw_text, task_id=task_id, completed=completed)
-        new_hash = self.storage.write_text_atomic(self.workspace.state_file, updated_text)
+        def _transactional_toggle() -> tuple[str, str]:
+            with self.storage.transaction(self.workspace.state_file) as (raw_text, _, save):
+                updated_text = self.parser.toggle_task(raw_text, task_id=task_id, completed=completed)
+                new_hash = save(updated_text)
+                return updated_text, new_hash
+
+        updated_text, new_hash = await asyncio.to_thread(_transactional_toggle)
 
         await self.event_bus.publish(
             ContextChangeEvent(
@@ -91,9 +96,13 @@ class ContextService:
         return self.parser.parse_state(updated_text, content_hash=new_hash)
 
     async def add_task(self, task_text: str) -> StateContext:
-        raw_text, _ = self.storage.read_text(self.workspace.state_file)
-        updated_text = self.parser.add_task(raw_text, task_text=task_text)
-        new_hash = self.storage.write_text_atomic(self.workspace.state_file, updated_text)
+        def _transactional_add() -> tuple[str, str]:
+            with self.storage.transaction(self.workspace.state_file) as (raw_text, _, save):
+                updated_text = self.parser.add_task(raw_text, task_text=task_text)
+                new_hash = save(updated_text)
+                return updated_text, new_hash
+
+        updated_text, new_hash = await asyncio.to_thread(_transactional_add)
 
         await self.event_bus.publish(
             ContextChangeEvent(
@@ -105,9 +114,13 @@ class ContextService:
         return self.parser.parse_state(updated_text, content_hash=new_hash)
 
     async def update_handover_note(self, author: str, body: str) -> StateContext:
-        raw_text, _ = self.storage.read_text(self.workspace.state_file)
-        updated_text = self.parser.update_handover_note(raw_text, author=author, note_body=body)
-        new_hash = self.storage.write_text_atomic(self.workspace.state_file, updated_text)
+        def _transactional_handover() -> tuple[str, str]:
+            with self.storage.transaction(self.workspace.state_file) as (raw_text, _, save):
+                updated_text = self.parser.update_handover_note(raw_text, author=author, note_body=body)
+                new_hash = save(updated_text)
+                return updated_text, new_hash
+
+        updated_text, new_hash = await asyncio.to_thread(_transactional_handover)
 
         await self.event_bus.publish(
             ContextChangeEvent(
@@ -126,16 +139,20 @@ class ContextService:
         decision: str,
         consequence: str,
     ) -> DecisionsContext:
-        raw_text, _ = self.storage.read_text(self.workspace.decisions_file)
-        updated_text = self.parser.append_decision(
-            raw_text,
-            title=title,
-            proposer=proposer,
-            context=context,
-            decision=decision,
-            consequence=consequence,
-        )
-        new_hash = self.storage.write_text_atomic(self.workspace.decisions_file, updated_text)
+        def _transactional_decision() -> tuple[str, str]:
+            with self.storage.transaction(self.workspace.decisions_file) as (raw_text, _, save):
+                updated_text = self.parser.append_decision(
+                    raw_text,
+                    title=title,
+                    proposer=proposer,
+                    context=context,
+                    decision=decision,
+                    consequence=consequence,
+                )
+                new_hash = save(updated_text)
+                return updated_text, new_hash
+
+        updated_text, new_hash = await asyncio.to_thread(_transactional_decision)
 
         await self.event_bus.publish(
             ContextChangeEvent(

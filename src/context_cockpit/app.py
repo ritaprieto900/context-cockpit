@@ -56,10 +56,10 @@ def create_app(workspace_path: Path | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Enable CORS for local dev / cross-origin UI
+    # Enable CORS strictly for local dev / localhost origins to prevent drive-by attacks
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origin_regex=r"^https?://(localhost|127\.0.0\.1)(:\d+)?$",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

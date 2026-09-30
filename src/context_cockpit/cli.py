@@ -42,15 +42,19 @@ def find_available_port(start_port: int, host: str = "127.0.0.1") -> int:
 
 
 def ensure_workspace_initialized(workspace: Path) -> None:
-    """Initializes .context/ directory if not present."""
+    """Initializes .context/ directory if not present using atomic storage."""
     context_dir = workspace / ".context"
     if not context_dir.exists():
         print(f"📦 Initializing .context/ architecture at: {workspace}", file=sys.stderr)
         context_dir.mkdir(parents=True, exist_ok=True)
 
+    from context_cockpit.infrastructure.storage import AtomicStorage
+    storage = AtomicStorage(lock_timeout=5.0)
+
     state_file = context_dir / "state.md"
     if not state_file.exists():
-        state_file.write_text(
+        storage.write_text_atomic(
+            state_file,
             """# 项目当前工作看板 (Dynamic State)
 
 ## 1. 当前里程碑
@@ -72,12 +76,12 @@ def ensure_workspace_initialized(workspace: Path) -> None:
 > **本次产出**：
 > - 初始化了项目黑板协作环境
 """,
-            encoding="utf-8",
         )
 
     decisions_file = context_dir / "decisions.md"
     if not decisions_file.exists():
-        decisions_file.write_text(
+        storage.write_text_atomic(
+            decisions_file,
             """# 架构决策记录 (Architecture Decision Records - ADR)
 
 本文件用于记录项目中的重大技术决策与设计理由。所有 Agent 必须遵守已有决策，不得擅自逆转既定架构。
@@ -91,13 +95,13 @@ def ensure_workspace_initialized(workspace: Path) -> None:
 - **决策内容**：采用 Git 原生黑板模式，通过 .context/ 共享状态。
 - **影响**：所有 Agent 在工作前后均需同步 state.md。
 """,
-            encoding="utf-8",
         )
 
     system_file = context_dir / "system.md"
     if not system_file.exists():
         proj_name = workspace.name
-        system_file.write_text(
+        storage.write_text_atomic(
+            system_file,
             f"""# 项目系统设计与全局约定 (System Context)
 
 ## 1. 项目基本信息
@@ -112,8 +116,8 @@ def ensure_workspace_initialized(workspace: Path) -> None:
 ## 3. 编码规范与红线约束 (Critical Rules)
 - **规则 1**：所有涉及公共接口的变更，必须同步更新相关文档。
 """,
-            encoding="utf-8",
         )
+
 
 
 def print_mcp_config(workspace_path: Path) -> None:
