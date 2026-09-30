@@ -275,6 +275,63 @@
       background: var(--bg-surface-highlight);
     }
 
+    /* Markdown Body */
+    .markdown-body {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+    .markdown-body p {
+      margin-bottom: 8px;
+    }
+    .markdown-body p:last-child {
+      margin-bottom: 0;
+    }
+    .markdown-body strong {
+      color: #f1f5f9;
+      font-weight: 600;
+    }
+    .markdown-body em {
+      color: #e2e8f0;
+    }
+    .markdown-body ul, .markdown-body ol {
+      padding-left: 18px;
+      margin: 6px 0;
+    }
+    .markdown-body li {
+      margin-bottom: 3px;
+    }
+    .markdown-body blockquote {
+      border-left: 3px solid var(--brand);
+      padding: 4px 10px;
+      margin: 6px 0;
+      color: #94a3b8;
+      background: rgba(14, 165, 233, 0.06);
+      border-radius: 0 4px 4px 0;
+    }
+    .markdown-body code {
+      font-family: monospace;
+      font-size: 11px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-subtle);
+      padding: 1px 4px;
+      border-radius: 4px;
+      color: #38bdf8;
+    }
+    .markdown-body pre {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      overflow-x: auto;
+      margin: 6px 0;
+    }
+    .markdown-body pre code {
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
     /* Toast */
     .toast {
       position: fixed;
@@ -469,8 +526,8 @@
                 {{ overview.state.handover_note?.timestamp || '' }}
               </span>
             </div>
-            <div style="font-size: 12px; color: var(--text-muted); font-family: monospace; white-space: pre-wrap; max-height: 140px; overflow-y: auto; line-height: 1.6;">
-              {{ overview.state.handover_note?.body || '暂无交接便签。' }}
+            <div class="markdown-body" style="max-height: 180px; overflow-y: auto;"
+                 v-html="renderMarkdown(overview.state.handover_note?.body || '暂无交接便签。')">
             </div>
           </div>
 
@@ -514,8 +571,10 @@
                 <span style="font-size: 11px; color: var(--text-dim); font-family: monospace;">{{ adr.date }}</span>
               </div>
               <h4 style="font-size: 13px; font-weight: 700; color: #fff;">{{ adr.title }}</h4>
-              <p style="font-size: 11px; color: var(--text-muted);"><strong style="color: #cbd5e1;">决策：</strong>{{ adr.decision }}</p>
-              <p v-if="adr.consequence" style="font-size: 11px; color: var(--text-dim);"><strong style="color: #94a3b8;">影响：</strong>{{ adr.consequence }}</p>
+              <div class="markdown-body" style="font-size: 11px;">
+                <p><strong style="color: #cbd5e1;">决策：</strong><span v-html="renderMarkdown(adr.decision)"></span></p>
+                <p v-if="adr.consequence"><strong style="color: #94a3b8;">影响：</strong><span v-html="renderMarkdown(adr.consequence)"></span></p>
+              </div>
             </div>
 
             <div v-if="!overview.decisions.records || overview.decisions.records.length === 0" style="padding: 24px; text-align: center; color: var(--text-dim); font-size: 12px;">
@@ -749,6 +808,18 @@
           ws.onerror = () => { ws.close(); };
         };
 
+        const renderMarkdown = (text) => {
+          if (!text) return '';
+          try {
+            if (window.marked && typeof window.marked.parse === 'function') {
+              return window.marked.parse(text);
+            }
+          } catch (e) {
+            console.error('Marked parse error:', e);
+          }
+          return text;
+        };
+
         onMounted(() => {
           fetchOverview();
           initWebSocket();
@@ -771,6 +842,7 @@
           totalTasksCount,
           completedTasksCount,
           progressPercentage,
+          renderMarkdown,
           fetchOverview,
           handleToggleTask,
           handleAddTask,

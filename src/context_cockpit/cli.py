@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 import webbrowser
+from datetime import datetime
 from pathlib import Path
 
 import uvicorn
@@ -51,15 +52,18 @@ def ensure_workspace_initialized(workspace: Path) -> None:
     from context_cockpit.infrastructure.storage import AtomicStorage
     storage = AtomicStorage(lock_timeout=5.0)
 
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
     state_file = context_dir / "state.md"
     if not state_file.exists():
         storage.write_text_atomic(
             state_file,
-            """# 项目当前工作看板 (Dynamic State)
+            f"""# 项目当前工作看板 (Dynamic State)
 
 ## 1. 当前里程碑
 - **当前阶段目标**：项目原型与核心功能开发
-- **当前负责人 (Active Agent)**：Antigravity
+- **当前负责人 (Active Agent)**：System
 
 ## 2. 任务清单 (Task Checklist)
 - [x] 初始化项目骨架与 .context/ 黑板规范
@@ -71,8 +75,8 @@ def ensure_workspace_initialized(workspace: Path) -> None:
 ---
 
 ## 4. 上一个 Agent 的交接便签 (Handover Note)
-> **交接记录人**：Antigravity
-> **交接时间**：初始创建
+> **交接记录人**：System
+> **交接时间**：{now_str}
 > **本次产出**：
 > - 初始化了项目黑板协作环境
 """,
@@ -82,15 +86,15 @@ def ensure_workspace_initialized(workspace: Path) -> None:
     if not decisions_file.exists():
         storage.write_text_atomic(
             decisions_file,
-            """# 架构决策记录 (Architecture Decision Records - ADR)
+            f"""# 架构决策记录 (Architecture Decision Records - ADR)
 
 本文件用于记录项目中的重大技术决策与设计理由。所有 Agent 必须遵守已有决策，不得擅自逆转既定架构。
 
 ---
 
 ### [ADR-001] 初始化黑板架构
-- **日期**：初始创建
-- **提议 Agent**：Antigravity
+- **日期**：{today_str}
+- **提议 Agent**：System
 - **背景**：需要多 Agent 无缝协作。
 - **决策内容**：采用 Git 原生黑板模式，通过 .context/ 共享状态。
 - **影响**：所有 Agent 在工作前后均需同步 state.md。
