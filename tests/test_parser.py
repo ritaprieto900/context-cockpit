@@ -200,3 +200,36 @@ def test_parse_system():
     assert system.run_command == "uv run python -m context_cockpit.cli"
     assert system.test_command == "uv run pytest"
     assert len(system.critical_rules) == 2
+
+
+def test_persistent_inline_task_id_prevents_index_shifting():
+    parser = MarkdownContextParser()
+    initial_md = """# 项目当前工作看板 (Dynamic State)
+## 2. 任务清单
+- [ ] 原始任务A <!-- id:task-perm-01 -->
+- [ ] 原始任务B <!-- id:task-perm-02 -->
+"""
+    state1 = parser.parse_state(initial_md)
+    assert state1.tasks[0].id == "task-perm-01"
+    assert state1.tasks[0].text == "原始任务A"
+    assert state1.tasks[1].id == "task-perm-02"
+    assert state1.tasks[1].text == "原始任务B"
+
+    # Manually insert a task at the top (which shifts the line index)
+    inserted_md = """# 项目当前工作看板 (Dynamic State)
+## 2. 任务清单
+- [ ] 顶部新插入的任务
+- [ ] 原始任务A <!-- id:task-perm-01 -->
+- [ ] 原始任务B <!-- id:task-perm-02 -->
+"""
+    state2 = parser.parse_state(inserted_md)
+    # Task A is now at index 1 instead of 0, but its ID MUST REMAIN "task-perm-01"!
+    assert state2.tasks[1].id == "task-perm-01"
+    assert state2.tasks[1].text == "原始任务A"
+
+    # Toggle task A using its permanent ID
+    toggled_md = parser.toggle_task(inserted_md, "task-perm-01", completed=True)
+    state3 = parser.parse_state(toggled_md)
+    assert state3.tasks[1].completed is True
+    assert "- [x] 原始任务A <!-- id:task-perm-01 -->" in toggled_md
+

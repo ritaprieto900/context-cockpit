@@ -26,6 +26,9 @@ HEADING_TASKS: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(2\.|.*任务清�
 HEADING_BLOCKERS: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(3\.|.*当前阻塞|.*Blocker)", re.IGNORECASE)
 HEADING_HANDOVER: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(4\.|.*交接便签|.*Handover)", re.IGNORECASE)
 
+# Persistent inline task ID pattern (e.g. <!-- id:task-a8f3d -->)
+INLINE_ID_REGEX: Final[re.Pattern[str]] = re.compile(r"<!--\s*id:(?P<id>[\w-]+)\s*-->")
+
 
 def compute_task_id(text: str, index: int = 0) -> str:
     """Computes a stable deterministic task ID incorporating position to prevent collisions."""
@@ -97,8 +100,15 @@ class MarkdownContextParser:
                     task_counter += 1
                     indent = len(match.group("indent"))
                     checked = match.group("checked").lower() == "x"
-                    task_text = match.group("text").strip()
-                    task_id = compute_task_id(task_text, index=task_counter)
+                    raw_task_text = match.group("text").strip()
+                    inline_match = INLINE_ID_REGEX.search(raw_task_text)
+                    if inline_match:
+                        task_id = inline_match.group("id")
+                        task_text = INLINE_ID_REGEX.sub("", raw_task_text).strip()
+                    else:
+                        task_id = compute_task_id(raw_task_text, index=task_counter)
+                        task_text = raw_task_text
+
                     tasks.append(
                         TaskItem(
                             id=task_id,
@@ -175,11 +185,16 @@ class MarkdownContextParser:
                 match = TASK_REGEX.match(line)
                 if match:
                     task_counter += 1
-                    task_text = match.group("text").strip()
-                    current_id = compute_task_id(task_text, index=task_counter)
+                    raw_task_text = match.group("text").strip()
+                    inline_match = INLINE_ID_REGEX.search(raw_task_text)
+                    if inline_match:
+                        current_id = inline_match.group("id")
+                    else:
+                        current_id = compute_task_id(raw_task_text, index=task_counter)
+
                     if current_id == task_id:
                         indent = match.group("indent")
-                        new_line = f"{indent}- [{target_mark}] {task_text}"
+                        new_line = f"{indent}- [{target_mark}] {raw_task_text}"
                         new_lines.append(new_line)
                         found = True
                         continue
@@ -195,6 +210,10 @@ class MarkdownContextParser:
     def add_task(self, raw_text: str, task_text: str) -> str:
         """Adds a new task to the Task Checklist section while preserving surrounding format."""
         clean_text = task_text.strip()
+        if not INLINE_ID_REGEX.search(clean_text):
+            digest = hashlib.sha256(clean_text.encode("utf-8")).hexdigest()[:8]
+            clean_text = f"{clean_text} <!-- id:task-{digest} -->"
+
         lines = raw_text.splitlines()
 
         tasks_header_idx = -1

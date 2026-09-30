@@ -57,14 +57,15 @@
 
 ## ✨ 核心特性
 
-### 1. 事务级文件锁与原子替换 (Transaction Locks)
+### 1. 事务级文件互斥锁与原子替换 (Transaction-Level File Locking)
 - 采用 `AtomicStorage.transaction()` 上下文管理器，将“读取旧文件 ➔ 内存变异 ➔ 原子落盘”完整包裹在操作系统级互斥锁内。
 - 采用持久化 `.lock` 句柄策略，解决排队进程句柄失效反模式。
-- 经 8 协程并发压测验证，保证 **0 丢失更新 (Zero Lost Updates)**。
+- 经 8 协程并发压测验证，保证通过 MCP/API 途径修改黑板时 **0 丢失更新 (Zero Lost Updates)**。
+- 💡 **并发安全边界说明**：文件互斥锁在 Context Cockpit 提供的 MCP 工具与 REST 接口范围内生效；建议所有协同 Agent 统一通过 MCP Tool（`cockpit_toggle_task` / `cockpit_add_task`）操作黑板，避免直接从文件系统底层暴力覆盖 `.md` 文件。
 
-### 2. 结构无损分块解析器 (Lossless AST Parser)
-- 仅重写目标任务的 `[ ]` / `[x]` 标记，100% 字节级保留原有空行、Tab/空格缩进、HTML 注释与扩展文本。
-- 任务 ID 采用结合行位与内容的确定性散列算法 (`compute_task_id(text, index)`)，杜绝同名任务连坐打钩。
+### 2. 结构无损分块流式解析器 (Structure-Preserving Block Parser)
+- 摒弃笨重的 AST 语法树抽象，采用基于行与正则的高性能分块流式解析，仅重写目标任务的 `[ ]` / `[x]` 标记，100% 字节级保留原有空行、Tab/空格缩进、HTML 注释与扩展文本。
+- **永久行内任务 ID 支持**：原生识别并持久化 `<!-- id:task-xxx -->` 标记。在 Markdown 中手动插入、删除或调整任务次序时，任务 ID 永久绑定、绝不漂移；无标签时自动回退为按内容哈希。
 - 标题严格匹配 `^#{1,3}\s+`，天然支持中英双语标记（`Milestone / Tasks / Blockers / Handover`）。
 
 ### 3. 原生 Model Context Protocol (MCP 2.x)

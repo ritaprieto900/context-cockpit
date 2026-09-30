@@ -5,7 +5,7 @@ description = "A production-grade, local developer cockpit for multi-agent .cont
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-    { name = "Antigravity Engineering" }
+    { name = "ritaprieto900", email = "ritaprieto900@gmail.com" }
 ]
 dependencies = [
     "fastapi>=0.115.0",
