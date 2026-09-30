@@ -3,7 +3,7 @@
 > **Industrial-Grade Local Developer Cockpit & MCP Server for Multi-Agent Git Blackboard Architecture**  
 > 专为基于 **Git 原生黑板架构 (`.context/` + `AGENTS.md`)** 的多 AI Agent 协同开发打造的工业级本地驾驶舱与标准 MCP 服务器。
 
-[![CI](https://github.com/your-org/context-cockpit/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/context-cockpit/actions)
+[![CI](https://github.com/ritaprieto900/context-cockpit/actions/workflows/ci.yml/badge.svg)](https://github.com/ritaprieto900/context-cockpit/actions)
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-2.2.0-green.svg)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
