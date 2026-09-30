@@ -1,7 +1,5 @@
 """Pytest configuration and shared fixtures for Context Cockpit tests."""
 
-from pathlib import Path
-import pytest
 
 SAMPLE_STATE_MD = """# 项目当前工作看板 (Dynamic State)
 

@@ -1,12 +1,9 @@
 """Application service orchestrating context business operations and persistence."""
 
 import asyncio
-from pathlib import Path
-from typing import Final
 
 from context_cockpit.domain.exceptions import ContextNotFoundError
 from context_cockpit.domain.models import (
-    ADRRecord,
     AgentType,
     DecisionsContext,
     StateContext,

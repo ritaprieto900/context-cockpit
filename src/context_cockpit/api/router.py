@@ -2,6 +2,7 @@
 
 import asyncio
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from context_cockpit.api.schemas import (

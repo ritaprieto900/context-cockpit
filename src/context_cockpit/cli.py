@@ -3,25 +3,25 @@
 import argparse
 import asyncio
 import json
-from pathlib import Path
 import socket
 import sys
 import threading
 import time
 import webbrowser
+from pathlib import Path
+
 import uvicorn
 
 from context_cockpit import __version__
 from context_cockpit.app import create_app
 from context_cockpit.mcp.server import create_mcp_server
-from context_cockpit.services.workspace import WorkspaceService
 
 BANNER = rf"""
-   ______            __            __     ______           __            _ __ 
+   ______            __            __     ______           __            _ __
   / ____/___  ____  / /____  _  __/ /_   / ____/___  _____/ /______  (_) /_
  / /   / __ \/ __ \/ __/ _ \| |/_/ __/  / /   / __ \/ ___/ //_/ __ \/ / __/
-/ /___/ /_/ / / / / /_/  __/>  </ /_   / /___/ /_/ / /__/ ,< / /_/ / / /_  
-\____/\____/_/ /_/\__/\___/_/|_|\__/   \____/\____/\___/_/|_/ .___/_/\__/   
+/ /___/ /_/ / / / / /_/  __/>  </ /_   / /___/ /_/ / /__/ ,< / /_/ / / /_
+\____/\____/_/ /_/\__/\___/_/|_|\__/   \____/\____/\___/_/|_/ .___/_/\__/
                                                            /_/  v{__version__}
       Multi-Agent Collaboration Cockpit for Git Blackboard Architecture
 """
@@ -154,6 +154,12 @@ def main() -> None:
         help="Workspace directory containing or to host .context/ (default: current directory)",
     )
     parser.add_argument(
+        "--dir",
+        dest="dir_opt",
+        default=None,
+        help="Explicit workspace directory path (alternative to positional argument)",
+    )
+    parser.add_argument(
         "--mcp",
         action="store_true",
         help="Run as an MCP (Model Context Protocol) stdio server for AI agents",
@@ -182,7 +188,8 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    workspace_path = Path(args.path).resolve()
+    target_dir = args.dir_opt if args.dir_opt is not None else args.path
+    workspace_path = Path(target_dir).resolve()
 
     if args.print_mcp_config:
         print_mcp_config(workspace_path)

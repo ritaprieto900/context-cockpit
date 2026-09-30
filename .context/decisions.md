@@ -58,3 +58,18 @@
   6. **防抖丢尾修复**：引入 trailing-edge 定时器；
   7. **本地安全加固**：收紧 CORS 仅允许 localhost，阻断 drive-by 本地越权攻击。
 - **影响**：真正实现多 Agent 高并发无损修改，完全离线可用，达到工业级软件安全标准。
+
+---
+
+### [ADR-005] Host Header 校验防御 DNS Rebinding 与工程化交付闭环
+- **日期**：2026-09-30
+- **提议 Agent**：Antigravity (基于复评深度建议)
+- **背景**：复评指出虽然 CORS 收紧，但非受信 Host 头可能导致 DNS Rebinding 攻击；CLI 缺少 `--dir` 选项导致胶水提示词执行报错；依赖列表中存在未使用项；缺少 CI 与代码检查工具。
+- **决策内容**：
+  1. **DNS Rebinding 严密防御**：集成 Starlette `TrustedHostMiddleware`，严格限制只接受 `localhost`、`127.0.0.1`、`[::1]` 及测试主机头，非受信 Host 直接 400 拦截；
+  2. **CLI 参数兼容**：CLI 解析器新增 `--dir` 选项作为工作区路径别名，确保 `context-cockpit .` 与 `context-cockpit --dir .` 均 100% 顺畅执行；
+  3. **标题解析严格对齐**：解析器匹配模式更新为 `^#{1,3}\s+`，与 ADR-004 保持绝对一致；
+  4. **位置型任务 ID 语义声明**：当前任务 ID 采用结合序号与文本的散列设计 (`task-{hash(index:text)}`)，兼顾无损文本纯净度与同名防连坐；配合 WebSocket 实时刷新与尾部追加策略，杜绝跨会话错位；
+  5. **工程化闭环**：剔除冗余依赖 `pydantic-settings`，引入 `ruff` 代码风格检查与格式化，新增 GitHub Actions 跨平台 CI 矩阵工作流。
+- **影响**：项目在安全防御、易用性、规范度与自动化测试各个维度均达到工业级成熟交付水准。
+

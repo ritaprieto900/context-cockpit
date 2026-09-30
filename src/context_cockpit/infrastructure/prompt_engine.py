@@ -37,7 +37,7 @@ class DoubaoPromptStrategy(BasePromptStrategy):
         instruction: str = "",
     ) -> str:
         rules_text = "\n".join(f"- {r}" for r in system.critical_rules) if system.critical_rules else "- 遵守既定架构，不破坏既有设计。"
-        
+
         pending_tasks = [t for t in state.tasks if not t.completed]
         tasks_text = "\n".join(f"- [ ] {t.text}" for t in pending_tasks) if pending_tasks else "- 暂无待处理任务"
 

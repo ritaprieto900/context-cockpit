@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+
 from mcp.server.mcpserver import MCPServer
 
 from context_cockpit.domain.models import AgentType

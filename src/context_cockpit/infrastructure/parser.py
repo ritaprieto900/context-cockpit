@@ -1,8 +1,8 @@
 """Structure-preserving Markdown AST and section parser for .context/ files."""
 
-from datetime import datetime
 import hashlib
 import re
+from datetime import datetime
 from typing import Final
 
 from context_cockpit.domain.exceptions import ParseError, TaskNotFoundError
@@ -20,11 +20,11 @@ TASK_REGEX: Final[re.Pattern[str]] = re.compile(
     r"^(?P<indent>\s*)-\s*\[(?P<checked>[ xX])\]\s*(?P<text>.+)$"
 )
 
-# Strict heading pattern for sections
-HEADING_MILESTONE: Final[re.Pattern[str]] = re.compile(r"^##\s+(1\.|.*当前里程碑|.*Milestone)", re.IGNORECASE)
-HEADING_TASKS: Final[re.Pattern[str]] = re.compile(r"^##\s+(2\.|.*任务清单|.*Task)", re.IGNORECASE)
-HEADING_BLOCKERS: Final[re.Pattern[str]] = re.compile(r"^##\s+(3\.|.*当前阻塞|.*Blocker)", re.IGNORECASE)
-HEADING_HANDOVER: Final[re.Pattern[str]] = re.compile(r"^##\s+(4\.|.*交接便签|.*Handover)", re.IGNORECASE)
+# Strict heading pattern for sections (supports #, ##, ### according to ADR-004)
+HEADING_MILESTONE: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(1\.|.*当前里程碑|.*Milestone)", re.IGNORECASE)
+HEADING_TASKS: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(2\.|.*任务清单|.*Task)", re.IGNORECASE)
+HEADING_BLOCKERS: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(3\.|.*当前阻塞|.*Blocker)", re.IGNORECASE)
+HEADING_HANDOVER: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(4\.|.*交接便签|.*Handover)", re.IGNORECASE)
 
 
 def compute_task_id(text: str, index: int = 0) -> str:

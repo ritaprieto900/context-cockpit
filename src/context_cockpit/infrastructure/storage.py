@@ -1,11 +1,12 @@
 """Thread-safe and process-safe atomic storage layer with transactional locking."""
 
-from contextlib import contextmanager
 import hashlib
 import os
-from pathlib import Path
-from typing import Callable, Generator
 import uuid
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
+from pathlib import Path
+
 from filelock import FileLock, Timeout
 
 from context_cockpit.domain.exceptions import ConcurrencyLockError, StorageError
@@ -13,7 +14,7 @@ from context_cockpit.domain.exceptions import ConcurrencyLockError, StorageError
 
 class AtomicStorage:
     """Provides atomic read and write operations with transaction-level file locking.
-    
+
     Guarantees ACID-like consistency for plain Markdown files without external database,
     preventing Lost Updates and race conditions across multiple AI Agents and editors.
     """
@@ -22,7 +23,7 @@ class AtomicStorage:
         self.lock_timeout = lock_timeout
 
     def _get_lock(self, file_path: Path) -> FileLock:
-        """Returns FileLock for target path. 
+        """Returns FileLock for target path.
         Note: Lock files are permanently retained on disk to preserve OS-level lock handles.
         """
         target_dir = file_path.parent
@@ -77,11 +78,11 @@ class AtomicStorage:
         self, file_path: Path
     ) -> Generator[tuple[str, str, Callable[[str], str]], None, None]:
         """Context manager covering the entire Read-Modify-Write cycle under an exclusive file lock.
-        
+
         Yields:
             tuple of (current_content, current_hash, save_callback)
             where save_callback(new_content) performs the atomic write before releasing the lock.
-            
+
         Raises:
             ConcurrencyLockError: If acquiring the lock times out.
             StorageError: If read or write fails.

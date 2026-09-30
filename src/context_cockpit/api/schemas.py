@@ -1,6 +1,7 @@
 """Pydantic schemas for API request and response contracts."""
 
 from pydantic import BaseModel, Field
+
 from context_cockpit.domain.models import AgentType
 
 

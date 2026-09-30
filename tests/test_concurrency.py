@@ -1,8 +1,8 @@
 """Stress tests for concurrency safety verifying absence of Lost Updates."""
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
 import pytest
 
 from context_cockpit.infrastructure.parser import MarkdownContextParser

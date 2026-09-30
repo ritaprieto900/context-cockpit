@@ -1,6 +1,7 @@
 """Integration tests for FastAPI REST endpoints using httpx AsyncClient."""
 
 from pathlib import Path
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -77,3 +78,17 @@ async def test_generate_prompt_endpoint(mock_workspace: Path):
         data = resp.json()
         assert "豆包" in data["prompt"]
         assert "优先优化任务列表" in data["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_dns_rebinding_rejected_by_host_validation(mock_workspace: Path):
+    app = create_app(mock_workspace)
+    # Untrusted external host header simulates a DNS rebinding attempt
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={"Host": "evil.example.com"},
+    ) as client:
+        resp = await client.get("/api/overview")
+        assert resp.status_code == 400
+

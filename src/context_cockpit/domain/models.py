@@ -1,11 +1,11 @@
 """Domain entities and value objects for Context Cockpit."""
 
-from enum import Enum
-from typing import Annotated
+from enum import StrEnum
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class AgentType(str, Enum):
+class AgentType(StrEnum):
     """Known agent types for optimized prompt strategy synthesis."""
     ANTIGRAVITY = "antigravity"
     DOUBAO = "doubao"

@@ -1,8 +1,9 @@
 """Tests for atomic storage and concurrency safety."""
 
-import os
 from pathlib import Path
+
 import pytest
+
 from context_cockpit.domain.exceptions import StorageError
 from context_cockpit.infrastructure.storage import AtomicStorage
 

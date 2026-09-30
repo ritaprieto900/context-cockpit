@@ -2,9 +2,9 @@
 
 import asyncio
 import hashlib
-from pathlib import Path
 import threading
-from typing import Final
+from pathlib import Path
+
 from watchdog.events import FileModifiedEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 

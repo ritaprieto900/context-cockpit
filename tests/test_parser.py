@@ -1,8 +1,9 @@
 """Unit tests for MarkdownContextParser verifying structure preservation and accurate extraction."""
 
 import pytest
+
 from context_cockpit.domain.exceptions import TaskNotFoundError
-from context_cockpit.infrastructure.parser import MarkdownContextParser, compute_task_id
+from context_cockpit.infrastructure.parser import MarkdownContextParser
 
 SAMPLE_STATE_MD = """# 项目当前工作看板 (Dynamic State)
 

@@ -1,7 +1,9 @@
 """WebSocket endpoint for real-time event broadcasting to connected frontend clients."""
 
 import asyncio
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
 from context_cockpit.services.event_bus import ContextChangeEvent, global_event_bus
 
 ws_router = APIRouter(tags=["realtime"])
