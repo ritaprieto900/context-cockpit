@@ -61,7 +61,7 @@ def create_app(workspace_path: Path | None = None) -> FastAPI:
     # Prevent DNS rebinding attacks: strictly validate Host header against localhost & loopback
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["localhost", "127.0.0.1", "[::1]", "testserver", "test", "*.localhost"],
+        allowed_hosts=["localhost", "127.0.0.1", "[::1]", "*.localhost"],
     )
 
     # Enable CORS strictly for local dev / localhost origins to prevent drive-by attacks

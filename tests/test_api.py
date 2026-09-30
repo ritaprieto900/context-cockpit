@@ -24,7 +24,7 @@ def mock_workspace(tmp_path: Path) -> Path:
 @pytest.mark.asyncio
 async def test_get_overview_endpoint(mock_workspace: Path):
     app = create_app(mock_workspace)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://127.0.0.1") as client:
         resp = await client.get("/api/overview")
         assert resp.status_code == 200
         data = resp.json()
@@ -37,7 +37,7 @@ async def test_get_overview_endpoint(mock_workspace: Path):
 @pytest.mark.asyncio
 async def test_toggle_task_endpoint(mock_workspace: Path):
     app = create_app(mock_workspace)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://127.0.0.1") as client:
         # Get tasks
         resp = await client.get("/api/state")
         task_id = resp.json()["tasks"][1]["id"]
@@ -55,7 +55,7 @@ async def test_toggle_task_endpoint(mock_workspace: Path):
 @pytest.mark.asyncio
 async def test_add_task_endpoint(mock_workspace: Path):
     app = create_app(mock_workspace)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://127.0.0.1") as client:
         resp = await client.post(
             "/api/tasks",
             json={"text": "测试新增任务接口"},
@@ -69,7 +69,7 @@ async def test_add_task_endpoint(mock_workspace: Path):
 @pytest.mark.asyncio
 async def test_generate_prompt_endpoint(mock_workspace: Path):
     app = create_app(mock_workspace)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://127.0.0.1") as client:
         resp = await client.post(
             "/api/prompt",
             json={"agent_type": "doubao", "instruction": "优先优化任务列表"},
@@ -86,9 +86,23 @@ async def test_dns_rebinding_rejected_by_host_validation(mock_workspace: Path):
     # Untrusted external host header simulates a DNS rebinding attempt
     async with AsyncClient(
         transport=ASGITransport(app=app),
-        base_url="http://test",
+        base_url="http://127.0.0.1",
         headers={"Host": "evil.example.com"},
     ) as client:
         resp = await client.get("/api/overview")
         assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_ipv6_loopback_host_accepted(mock_workspace: Path):
+    app = create_app(mock_workspace)
+    # Valid IPv6 loopback [::1] must be accepted cleanly
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://127.0.0.1",
+        headers={"Host": "[::1]"},
+    ) as client:
+        resp = await client.get("/api/overview")
+        assert resp.status_code == 200
+
 
