@@ -127,4 +127,28 @@ async def test_update_milestone_endpoint(mock_workspace: Path):
         assert overview["state"]["milestone"]["active_agent"] == "Claude Code"
 
 
+@pytest.mark.asyncio
+async def test_delete_task_endpoint(mock_workspace: Path):
+    app = create_app(mock_workspace)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://127.0.0.1") as client:
+        # Get tasks first
+        get_resp = await client.get("/api/state")
+        tasks = get_resp.json()["tasks"]
+        assert len(tasks) == 3
+        task_id = tasks[1]["id"]
+
+        # Delete second task
+        del_resp = await client.delete(f"/api/tasks/{task_id}")
+        assert del_resp.status_code == 200
+        updated = del_resp.json()
+        assert len(updated["tasks"]) == 2
+        remaining_ids = [t["id"] for t in updated["tasks"]]
+        assert task_id not in remaining_ids
+
+        # Attempt deleting already deleted task returns 404
+        retry_resp = await client.delete(f"/api/tasks/{task_id}")
+        assert retry_resp.status_code == 404
+
+
+
 

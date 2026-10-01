@@ -95,6 +95,20 @@ def create_mcp_server(workspace_path: Path | None = None) -> MCPServer:
         )
 
     @mcp.tool()
+    async def cockpit_delete_task(task_id: str) -> str:
+        """Deletes a task by its task_id from the project checklist."""
+        updated = await service.delete_task(task_id=task_id)
+        return json.dumps(
+            {
+                "success": True,
+                "task_id": task_id,
+                "remaining_tasks": len(updated.tasks),
+            },
+            ensure_ascii=False,
+        )
+
+
+    @mcp.tool()
     async def cockpit_create_adr(
         title: str,
         context: str,

@@ -86,6 +86,17 @@ async def add_task(payload: AddTaskRequest, service: ServiceDep) -> StateContext
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
 
 
+@router.delete("/tasks/{task_id}", response_model=StateContext)
+async def delete_task(task_id: str, service: ServiceDep) -> StateContext:
+    try:
+        return await service.delete_task(task_id=task_id)
+    except TaskNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.message)
+    except CockpitError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
+
+
+
 @router.post("/handover", response_model=StateContext)
 async def update_handover(payload: UpdateHandoverRequest, service: ServiceDep) -> StateContext:
     try:

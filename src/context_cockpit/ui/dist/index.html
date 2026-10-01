@@ -179,14 +179,14 @@
     /* Task Items */
     .task-item {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
+      justify-content: space-between;
       gap: 12px;
-      padding: 12px 14px;
+      padding: 10px 14px;
       border-radius: var(--radius-md);
       background: rgba(30, 41, 59, 0.5);
       border: 1px solid var(--border-subtle);
       margin-bottom: 8px;
-      cursor: pointer;
       user-select: none;
       transition: all 0.2s ease;
     }
@@ -201,6 +201,36 @@
     }
     .task-item.completed .task-text {
       text-decoration: line-through;
+    }
+    .task-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      flex: 1;
+      cursor: pointer;
+    }
+    .task-delete-btn {
+      opacity: 0;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .task-item:hover .task-delete-btn {
+      opacity: 0.7;
+    }
+    .task-delete-btn:hover {
+      opacity: 1 !important;
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--rose);
+      transform: scale(1.05);
     }
 
     .checkbox {
@@ -223,6 +253,30 @@
       border-color: var(--emerald);
       color: #fff;
     }
+
+    .btn-edit-milestone {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      color: #38bdf8;
+      background: rgba(14, 165, 233, 0.12);
+      border: 1px solid rgba(14, 165, 233, 0.35);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .btn-edit-milestone:hover {
+      background: rgba(14, 165, 233, 0.22);
+      border-color: var(--brand);
+      color: #f0f9ff;
+      box-shadow: 0 0 12px rgba(14, 165, 233, 0.3);
+      transform: translateY(-1px);
+    }
+
 
     /* Inputs and Buttons */
     input, textarea, select {
@@ -560,8 +614,11 @@
               <span style="font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: var(--bg-surface-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle);">
                 负责人: <strong style="color: #38bdf8;">{{ overview.state.milestone.active_agent || '未分配' }}</strong>
               </span>
-              <button @click="openEditMilestone" style="background: rgba(30, 41, 59, 0.8); border: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 11px; padding: 2px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
-                修改
+              <button @click="openEditMilestone" class="btn-edit-milestone" title="点击编辑当前里程碑目标与负责人">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span>编辑里程碑</span>
               </button>
             </div>
           </div>
@@ -598,15 +655,22 @@
 
           <div style="max-height: 480px; overflow-y: auto; padding-right: 4px;">
             <div v-for="task in overview.state.tasks" :key="task.id"
-                 @click="handleToggleTask(task)"
                  class="task-item" :class="{ completed: task.completed }">
-              <div class="checkbox">
-                <span v-if="task.completed" style="font-size: 11px; font-weight: bold;">✓</span>
+              <div class="task-main" @click="handleToggleTask(task)">
+                <div class="checkbox">
+                  <span v-if="task.completed" style="font-size: 11px; font-weight: bold;">✓</span>
+                </div>
+                <span class="task-text" style="font-size: 13px; font-weight: 500; line-height: 1.4;">
+                  {{ task.text }}
+                </span>
               </div>
-              <span class="task-text" style="font-size: 13px; font-weight: 500; line-height: 1.4;">
-                {{ task.text }}
-              </span>
+              <button class="task-delete-btn" @click.stop="handleDeleteTask(task)" title="删除此任务">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
+
 
             <div v-if="!overview.state.tasks || overview.state.tasks.length === 0" style="padding: 32px; text-align: center; color: var(--text-dim); font-size: 13px;">
               当前暂无任务，请在上方输入框添加任务。
@@ -994,6 +1058,24 @@
           }
         };
 
+        const handleDeleteTask = async (task) => {
+          try {
+            const res = await fetch(`/api/tasks/${task.id}`, {
+              method: 'DELETE',
+            });
+            if (res.ok) {
+              const updatedState = await res.json();
+              overview.value.state = updatedState;
+              triggerToast('已删除任务');
+            } else {
+              triggerToast('删除任务失败');
+            }
+          } catch (err) {
+            triggerToast('网络通信异常');
+          }
+        };
+
+
         const saveHandoverNote = async () => {
           try {
             const res = await fetch('/api/handover', {
@@ -1131,10 +1213,12 @@
           fetchOverview,
           handleToggleTask,
           handleAddTask,
+          handleDeleteTask,
           saveHandoverNote,
           copyHandoverPrompt,
           handleCreateADR,
         };
+
 
 
       }

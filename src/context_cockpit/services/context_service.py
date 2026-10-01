@@ -110,7 +110,26 @@ class ContextService:
         )
         return self.parser.parse_state(updated_text, content_hash=new_hash)
 
+    async def delete_task(self, task_id: str) -> StateContext:
+        def _transactional_delete() -> tuple[str, str]:
+            with self.storage.transaction(self.workspace.state_file) as (raw_text, _, save):
+                updated_text = self.parser.delete_task(raw_text, task_id=task_id)
+                new_hash = save(updated_text)
+                return updated_text, new_hash
+
+        updated_text, new_hash = await asyncio.to_thread(_transactional_delete)
+
+        await self.event_bus.publish(
+            ContextChangeEvent(
+                filename="state.md",
+                event_type="api_update",
+                metadata={"action": "delete_task", "task_id": task_id},
+            )
+        )
+        return self.parser.parse_state(updated_text, content_hash=new_hash)
+
     async def update_handover_note(self, author: str, body: str) -> StateContext:
+
         def _transactional_handover() -> tuple[str, str]:
             with self.storage.transaction(self.workspace.state_file) as (raw_text, _, save):
                 updated_text = self.parser.update_handover_note(raw_text, author=author, note_body=body)

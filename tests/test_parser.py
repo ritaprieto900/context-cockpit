@@ -255,3 +255,37 @@ def test_update_milestone_updates_title_and_active_agent():
     assert "- [ ] 任务1" in updated_md
 
 
+def test_delete_task_removes_task_and_preserves_structure():
+    parser = MarkdownContextParser()
+    initial_md = """# 项目当前工作看板 (Dynamic State)
+
+## 2. 任务清单 (Task Checklist)
+- [x] 任务1 <!-- id:task-01 -->
+- [ ] 任务2 <!-- id:task-02 -->
+- [ ] 任务3 <!-- id:task-03 -->
+
+## 3. 当前阻塞与风险 (Blockers)
+- 无
+"""
+    updated_md = parser.delete_task(initial_md, task_id="task-02")
+    state = parser.parse_state(updated_md)
+
+    assert len(state.tasks) == 2
+    assert state.tasks[0].id == "task-01"
+    assert state.tasks[1].id == "task-03"
+    assert "任务2" not in updated_md
+    assert "- [x] 任务1 <!-- id:task-01 -->" in updated_md
+    assert "- [ ] 任务3 <!-- id:task-03 -->" in updated_md
+    assert "## 3. 当前阻塞与风险 (Blockers)" in updated_md
+
+
+def test_delete_nonexistent_task_raises_error():
+    parser = MarkdownContextParser()
+    sample = """## 2. 任务清单
+- [ ] 任务A
+"""
+    with pytest.raises(TaskNotFoundError):
+        parser.delete_task(sample, "non-existent-id")
+
+
+

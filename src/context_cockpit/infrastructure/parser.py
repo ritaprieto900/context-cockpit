@@ -207,7 +207,48 @@ class MarkdownContextParser:
         ending = "\n" if raw_text.endswith("\n") else ""
         return "\n".join(new_lines) + ending
 
+    def delete_task(self, raw_text: str, task_id: str) -> str:
+        """Deletes a task from the Task Checklist section by its task ID."""
+        lines = raw_text.splitlines()
+        found = False
+        new_lines: list[str] = []
+        task_counter = 0
+
+        in_tasks_section = False
+        for line in lines:
+            stripped = line.strip()
+            if HEADING_TASKS.match(stripped):
+                in_tasks_section = True
+                new_lines.append(line)
+                continue
+            elif in_tasks_section and (stripped.startswith("## ") or stripped.startswith("---")):
+                in_tasks_section = False
+
+            if in_tasks_section:
+                match = TASK_REGEX.match(line)
+                if match:
+                    task_counter += 1
+                    raw_task_text = match.group("text").strip()
+                    inline_match = INLINE_ID_REGEX.search(raw_task_text)
+                    if inline_match:
+                        current_id = inline_match.group("id")
+                    else:
+                        current_id = compute_task_id(raw_task_text, index=task_counter)
+
+                    if current_id == task_id:
+                        found = True
+                        continue
+
+            new_lines.append(line)
+
+        if not found:
+            raise TaskNotFoundError(task_id)
+
+        ending = "\n" if raw_text.endswith("\n") else ""
+        return "\n".join(new_lines) + ending
+
     def add_task(self, raw_text: str, task_text: str) -> str:
+
         """Adds a new task to the Task Checklist section while preserving surrounding format."""
         clean_text = task_text.strip()
         if not INLINE_ID_REGEX.search(clean_text):
