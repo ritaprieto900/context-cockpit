@@ -506,27 +506,56 @@
       padding: 0;
     }
 
-    /* Toast */
-    .toast {
+    /* Toast (Bottom-Right HUD) */
+    .toast-container {
       position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 50;
-      display: flex;
+      bottom: 28px;
+      right: 28px;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .toast {
+      display: inline-flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 18px;
+      padding: 10px 18px;
       border-radius: var(--radius-md);
-      background: rgba(14, 165, 233, 0.95);
-      color: #fff;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      background: rgba(15, 23, 42, 0.94);
+      color: #f8fafc;
+      border: 1px solid var(--border-strong);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05);
       font-size: 13px;
       font-weight: 500;
-      animation: slideIn 0.3s ease;
+      animation: toastSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: auto;
     }
-    @keyframes slideIn {
-      from { transform: translateY(-10px); opacity: 0; }
+    .toast.success {
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+    .toast.error {
+      border-color: rgba(248, 113, 113, 0.4);
+    }
+    .toast-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .toast.success .toast-icon {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+    }
+    .toast.error .toast-icon {
+      background: rgba(248, 113, 113, 0.15);
+      color: #f87171;
+    }
+    @keyframes toastSlideUp {
+      from { transform: translateY(14px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
 
@@ -560,10 +589,12 @@
 <body>
   <div id="app" v-cloak>
 
-    <!-- Toast Notification -->
-    <div v-if="toast.show" class="toast">
-      <span style="font-weight: 700; color: #38bdf8;">✓</span>
-      <span>{{ toast.message }}</span>
+    <!-- Toast Notification (Bottom-Right Non-Intrusive HUD) -->
+    <div class="toast-container" v-if="toast.show">
+      <div class="toast" :class="toast.type">
+        <span class="toast-icon">{{ toast.type === 'error' ? '✕' : '✓' }}</span>
+        <span>{{ toast.message }}</span>
+      </div>
     </div>
 
     <!-- Header Navigation -->
@@ -974,21 +1005,22 @@
               showEditMilestoneModal.value = false;
               triggerToast('已更新里程碑与负责人');
             } else {
-              triggerToast('更新里程碑失败');
+              triggerToast('更新里程碑失败', 'error');
             }
           } catch (err) {
-            triggerToast('网络通信异常');
+            triggerToast('网络通信异常', 'error');
           }
         };
 
         const showAddADRModal = ref(false);
         const newADR = ref({ title: '', proposer: 'System', context: '', decision: '', consequence: '' });
 
-
-        const toast = ref({ show: false, message: '' });
-        const triggerToast = (message) => {
-          toast.value = { show: true, message };
-          setTimeout(() => { toast.value.show = false; }, 3000);
+        const toast = ref({ show: false, message: '', type: 'success' });
+        let toastTimer = null;
+        const triggerToast = (message, type = 'success') => {
+          if (toastTimer) clearTimeout(toastTimer);
+          toast.value = { show: true, message, type };
+          toastTimer = setTimeout(() => { toast.value.show = false; }, 2600);
         };
 
         const totalTasksCount = computed(() => overview.value.state.tasks?.length || 0);
@@ -1028,11 +1060,11 @@
             });
             if (!res.ok) {
               task.completed = !targetStatus;
-              triggerToast('修改状态失败');
+              triggerToast('修改状态失败', 'error');
             }
           } catch (err) {
             task.completed = !targetStatus;
-            triggerToast('网络通信异常');
+            triggerToast('网络通信异常', 'error');
           }
         };
 
@@ -1052,7 +1084,7 @@
               triggerToast('已添加新任务');
             }
           } catch (err) {
-            triggerToast('添加任务失败');
+            triggerToast('添加任务失败', 'error');
           }
         };
 
@@ -1073,10 +1105,10 @@
               overview.value.state = updatedState;
               triggerToast('已删除任务');
             } else {
-              triggerToast('删除任务失败');
+              triggerToast('删除任务失败', 'error');
             }
           } catch (err) {
-            triggerToast('网络通信异常');
+            triggerToast('网络通信异常', 'error');
           }
         };
 
@@ -1099,7 +1131,7 @@
               triggerToast('已更新交接便签');
             }
           } catch (err) {
-            triggerToast('更新便签失败');
+            triggerToast('更新便签失败', 'error');
           }
         };
 
@@ -1120,7 +1152,7 @@
               triggerToast('已成功复制交接提示词！');
             }
           } catch (err) {
-            triggerToast('生成提示词失败');
+            triggerToast('生成提示词失败', 'error');
           } finally {
             copyingPrompt.value = false;
           }
@@ -1137,11 +1169,11 @@
               const updatedDecisions = await res.json();
               overview.value.decisions = updatedDecisions;
               showAddADRModal.value = false;
-              newADR.value = { title: '', proposer: 'Antigravity', context: '', decision: '', consequence: '' };
+              newADR.value = { title: '', proposer: 'System', context: '', decision: '', consequence: '' };
               triggerToast('已成功创建新 ADR');
             }
           } catch (err) {
-            triggerToast('创建 ADR 失败');
+            triggerToast('创建 ADR 失败', 'error');
           }
         };
 
