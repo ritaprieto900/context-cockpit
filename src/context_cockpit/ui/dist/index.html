@@ -257,6 +257,109 @@
       padding: 8px;
     }
 
+    /* Agent Selection Tabs (选项卡) */
+    .agent-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .agent-chip {
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+      font-family: inherit;
+    }
+    .agent-chip:hover {
+      border-color: var(--border-strong);
+      color: var(--text-main);
+      background: var(--bg-surface-highlight);
+    }
+    .agent-chip.active {
+      background: rgba(14, 165, 233, 0.15);
+      border-color: var(--brand);
+      color: #38bdf8;
+      font-weight: 600;
+      box-shadow: 0 0 0 1px var(--brand);
+    }
+
+    /* In-DOM Custom Dropdown Menu */
+    .custom-select-wrapper {
+      position: relative;
+      width: 250px;
+    }
+    .custom-select-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 7px 12px;
+      font-size: 12px;
+      color: var(--text-main);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .custom-select-trigger:hover, .custom-select-trigger.active {
+      border-color: var(--brand);
+    }
+    .chevron-icon {
+      width: 14px;
+      height: 14px;
+      color: var(--text-dim);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .chevron-icon.open {
+      transform: rotate(180deg);
+    }
+    .custom-select-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      width: 100%;
+      max-height: 260px;
+      overflow-y: auto;
+      background: #0f172a;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65);
+      z-index: 60;
+      padding: 4px;
+      backdrop-filter: blur(12px);
+    }
+    .custom-select-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .custom-select-item:hover {
+      background: rgba(14, 165, 233, 0.12);
+      color: #38bdf8;
+    }
+    .custom-select-item.selected {
+      background: rgba(14, 165, 233, 0.18);
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+
 
     .btn {
       display: inline-flex;
@@ -405,7 +508,7 @@
 
     <!-- Toast Notification -->
     <div v-if="toast.show" class="toast">
-      <span>✨</span>
+      <span style="font-weight: 700; color: #38bdf8;">✓</span>
       <span>{{ toast.message }}</span>
     </div>
 
@@ -436,10 +539,11 @@
           <span>{{ wsConnected ? '实时协同已连接' : '重连中...' }}</span>
         </div>
         <button @click="fetchOverview" title="刷新状态" class="btn btn-secondary" style="padding: 6px 10px;">
-          🔄
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
         </button>
       </div>
     </header>
+
 
     <!-- Main Content Area -->
     <main>
@@ -450,14 +554,14 @@
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--brand); letter-spacing: 0.05em;">
-              🎯 当前活跃里程碑
+              当前活跃里程碑
             </span>
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: var(--bg-surface-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle);">
                 负责人: <strong style="color: #38bdf8;">{{ overview.state.milestone.active_agent || '未分配' }}</strong>
               </span>
               <button @click="openEditMilestone" style="background: rgba(30, 41, 59, 0.8); border: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 11px; padding: 2px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
-                ✏️ 修改
+                修改
               </button>
             </div>
           </div>
@@ -481,7 +585,7 @@
         <!-- Task Checklist -->
         <div class="card" style="flex: 1;">
           <div class="card-header">
-            <h3 class="card-title"><span>📋</span> 任务清单 (Checklist)</h3>
+            <h3 class="card-title">任务清单 (Checklist)</h3>
             <span style="font-size: 11px; color: var(--text-dim);">事务级文件锁保护 • 零 Lost Update</span>
           </div>
 
@@ -518,11 +622,12 @@
         <!-- Handover Station -->
         <div class="card card-accent">
           <div class="card-header">
-            <h3 class="card-title" style="color: #38bdf8;"><span>🤝</span> Agent 接力工作台 (Handover)</h3>
+            <h3 class="card-title" style="color: #38bdf8;">Agent 接力工作台 (Handover)</h3>
             <button @click="showEditHandover = !showEditHandover" style="background: none; border: none; color: var(--text-muted); font-size: 11px; cursor: pointer;">
-              {{ showEditHandover ? '取消' : '✍️ 修改留言' }}
+              {{ showEditHandover ? '取消' : '修改留言' }}
             </button>
           </div>
+
 
           <!-- Edit Handover Form -->
           <div v-if="showEditHandover" style="margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;">
@@ -558,27 +663,31 @@
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <label style="font-size: 12px; font-weight: 600;">接班目标 Agent：</label>
-              <select v-model="selectedAgent" style="width: auto; max-width: 250px; padding: 6px 32px 6px 12px; font-size: 12px;">
-                <option value="cursor">⚡ Cursor (Composer / Agent)</option>
-                <option value="claude">🤖 Claude Code CLI</option>
-                <option value="windsurf">🌊 Windsurf (Cascade)</option>
-                <option value="chatgpt">💬 ChatGPT (Canvas / Code)</option>
-                <option value="deepseek">🧠 DeepSeek Coder</option>
-                <option value="copilot">🐙 GitHub Copilot</option>
-                <option value="cline">🛠️ Cline / Roo Code</option>
-                <option value="trae">🚀 Trae</option>
-                <option value="doubao">🥟 豆包 (Doubao) [中文结构]</option>
-                <option value="aider">⌨️ Aider CLI</option>
-                <option value="antigravity">🪐 Google Antigravity</option>
-                <option value="generic">🌐 通用大模型 / Other LLM</option>
-              </select>
 
+              <!-- In-DOM Custom Dropdown Menu (Zero Native OS Popup) -->
+              <div class="custom-select-wrapper" ref="agentDropdownRef">
+                <div class="custom-select-trigger" :class="{ active: isAgentDropdownOpen }" @click.stop="toggleAgentDropdown">
+                  <span>{{ currentAgentLabel }}</span>
+                  <svg class="chevron-icon" :class="{ open: isAgentDropdownOpen }" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <div class="custom-select-menu" v-if="isAgentDropdownOpen">
+                  <div v-for="agent in agentOptions"
+                       :key="agent.value"
+                       class="custom-select-item"
+                       :class="{ selected: selectedAgent === agent.value }"
+                       @click.stop="selectTargetAgent(agent.value)">
+                    <span>{{ agent.label }}</span>
+                    <span v-if="selectedAgent === agent.value" style="color: var(--brand); font-weight: bold;">✓</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <input v-model="customDirective" type="text" placeholder="可选额外指令 (例如：优先编写测试)..." />
 
             <button @click="copyHandoverPrompt" :disabled="copyingPrompt" class="btn btn-brand" style="width: 100%; padding: 12px; font-size: 14px;">
-              <span>📋</span>
               <span>{{ copyingPrompt ? '正在生成...' : '一键生成并复制交接提示词' }}</span>
             </button>
           </div>
@@ -587,11 +696,12 @@
         <!-- ADRs -->
         <div class="card" style="flex: 1;">
           <div class="card-header">
-            <h3 class="card-title"><span>🏛️</span> 架构决策记录 (ADR)</h3>
+            <h3 class="card-title">架构决策记录 (ADR)</h3>
             <button @click="showAddADRModal = true" style="background: none; border: none; color: var(--brand); font-size: 11px; font-weight: 600; cursor: pointer;">
               + 新增决策
             </button>
           </div>
+
 
           <div style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
             <div v-for="adr in overview.decisions.records" :key="adr.id"
@@ -654,7 +764,7 @@
     <div v-if="showEditMilestoneModal" class="modal-overlay">
       <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border-subtle);">
-          <h3 style="font-size: 15px; font-weight: 700;">🎯 修改里程碑与当前负责人</h3>
+          <h3 style="font-size: 15px; font-weight: 700;">修改里程碑与当前负责人</h3>
           <button @click="showEditMilestoneModal = false" style="background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer;">✕</button>
         </div>
         <form @submit.prevent="handleUpdateMilestone" style="display: flex; flex-direction: column; gap: 14px;">
@@ -663,24 +773,21 @@
             <input v-model="editMilestoneTitle" required type="text" placeholder="例如：完成核心模块开发与单元测试" />
           </div>
           <div>
-            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">当前负责人 (Active Agent)</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 6px;">
-              <select v-model="editMilestoneAgent" style="flex: 1;">
-                <option value="Cursor">Cursor (Composer / Agent)</option>
-                <option value="Claude Code">Claude Code CLI</option>
-                <option value="Windsurf">Windsurf (Cascade)</option>
-                <option value="ChatGPT">ChatGPT (Canvas / Codex)</option>
-                <option value="DeepSeek">DeepSeek (Coder)</option>
-                <option value="GitHub Copilot">GitHub Copilot</option>
-                <option value="Cline">Cline / Roo Code</option>
-                <option value="Trae">Trae</option>
-                <option value="豆包">豆包 (Doubao)</option>
-                <option value="Aider">Aider CLI</option>
-                <option value="Antigravity">Antigravity</option>
-                <option value="System">System (系统通用)</option>
-              </select>
+            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; display: block;">当前负责人 (Active Agent)</label>
+            
+            <!-- Agent Selection Tabs (选项卡) -->
+            <div class="agent-chips">
+              <button type="button"
+                      v-for="agent in milestoneAgentChips"
+                      :key="agent"
+                      class="agent-chip"
+                      :class="{ active: editMilestoneAgent === agent }"
+                      @click="editMilestoneAgent = agent">
+                {{ agent }}
+              </button>
             </div>
-            <input v-model="editMilestoneAgent" type="text" placeholder="或手动输入任意自定义名称..." />
+
+            <input v-model="editMilestoneAgent" type="text" placeholder="点击上方选项卡快速选择，或直接输入负责人名称" />
           </div>
           <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
             <button type="button" @click="showEditMilestoneModal = false" class="btn btn-secondary">取消</button>
@@ -691,11 +798,12 @@
     </div>
 
 
+
   </div>
 
   <!-- Local Vue 3 Application Script -->
   <script>
-    const { createApp, ref, computed, onMounted } = Vue;
+    const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 
     createApp({
       setup() {
@@ -716,10 +824,62 @@
           system: { project_name: '', critical_rules: [] }
         });
 
+        const agentOptions = [
+          { value: 'cursor', label: 'Cursor (Composer / Agent)' },
+          { value: 'claude', label: 'Claude Code CLI' },
+          { value: 'windsurf', label: 'Windsurf (Cascade)' },
+          { value: 'chatgpt', label: 'ChatGPT (Canvas / Code)' },
+          { value: 'deepseek', label: 'DeepSeek Coder' },
+          { value: 'copilot', label: 'GitHub Copilot' },
+          { value: 'cline', label: 'Cline / Roo Code' },
+          { value: 'trae', label: 'Trae' },
+          { value: 'doubao', label: '豆包 (Doubao)' },
+          { value: 'aider', label: 'Aider CLI' },
+          { value: 'antigravity', label: 'Google Antigravity' },
+          { value: 'generic', label: '通用大模型 (Other LLM)' },
+        ];
+
+        const milestoneAgentChips = [
+          'Cursor',
+          'Claude Code',
+          'Windsurf',
+          'ChatGPT',
+          'DeepSeek',
+          'GitHub Copilot',
+          'Cline',
+          'Trae',
+          '豆包',
+          'Aider',
+          'System',
+        ];
+
         const newTaskText = ref('');
         const selectedAgent = ref('cursor');
         const customDirective = ref('');
         const copyingPrompt = ref(false);
+
+        const isAgentDropdownOpen = ref(false);
+        const agentDropdownRef = ref(null);
+
+        const currentAgentLabel = computed(() => {
+          const found = agentOptions.find(a => a.value === selectedAgent.value);
+          return found ? found.label : '选择 Agent';
+        });
+
+        const toggleAgentDropdown = () => {
+          isAgentDropdownOpen.value = !isAgentDropdownOpen.value;
+        };
+
+        const selectTargetAgent = (val) => {
+          selectedAgent.value = val;
+          isAgentDropdownOpen.value = false;
+        };
+
+        const handleDocumentClick = (e) => {
+          if (agentDropdownRef.value && !agentDropdownRef.value.contains(e.target)) {
+            isAgentDropdownOpen.value = false;
+          }
+        };
 
         const showEditHandover = ref(false);
         const editHandoverAuthor = ref('');
@@ -728,6 +888,7 @@
         const showEditMilestoneModal = ref(false);
         const editMilestoneTitle = ref('');
         const editMilestoneAgent = ref('Cursor');
+
 
         const openEditMilestone = () => {
           editMilestoneTitle.value = overview.value.state?.milestone?.title || '';
@@ -930,12 +1091,24 @@
         onMounted(() => {
           fetchOverview();
           initWebSocket();
+          document.addEventListener('click', handleDocumentClick);
+        });
+
+        onUnmounted(() => {
+          document.removeEventListener('click', handleDocumentClick);
         });
 
         return {
           loading,
           wsConnected,
           overview,
+          agentOptions,
+          milestoneAgentChips,
+          isAgentDropdownOpen,
+          agentDropdownRef,
+          currentAgentLabel,
+          toggleAgentDropdown,
+          selectTargetAgent,
           newTaskText,
           selectedAgent,
           customDirective,
@@ -962,6 +1135,7 @@
           copyHandoverPrompt,
           handleCreateADR,
         };
+
 
       }
     }).mount('#app');
