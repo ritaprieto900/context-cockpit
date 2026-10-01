@@ -286,6 +286,3 @@ def test_delete_nonexistent_task_raises_error():
 """
     with pytest.raises(TaskNotFoundError):
         parser.delete_task(sample, "non-existent-id")
-
-
-

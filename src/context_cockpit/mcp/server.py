@@ -107,7 +107,6 @@ def create_mcp_server(workspace_path: Path | None = None) -> MCPServer:
             ensure_ascii=False,
         )
 
-
     @mcp.tool()
     async def cockpit_create_adr(
         title: str,

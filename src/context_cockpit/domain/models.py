@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class AgentType(StrEnum):
     """Known agent types for optimized prompt strategy synthesis."""
+
     CURSOR = "cursor"
     CLAUDE = "claude"
     WINDSURF = "windsurf"
@@ -23,6 +24,7 @@ class AgentType(StrEnum):
 
 class TaskItem(BaseModel):
     """Represents a discrete task item within the checklist."""
+
     model_config = ConfigDict(frozen=True)
 
     id: str = Field(description="Unique deterministic ID of the task")
@@ -34,6 +36,7 @@ class TaskItem(BaseModel):
 
 class Milestone(BaseModel):
     """Current milestone summary from state.md."""
+
     model_config = ConfigDict(frozen=True)
 
     title: str = Field(default="", description="Description of the active milestone")
@@ -42,6 +45,7 @@ class Milestone(BaseModel):
 
 class HandoverNote(BaseModel):
     """Latest handover note left by the outgoing agent."""
+
     model_config = ConfigDict(frozen=True)
 
     author: str = Field(default="", description="Agent who wrote the note")
@@ -51,6 +55,7 @@ class HandoverNote(BaseModel):
 
 class StateContext(BaseModel):
     """Complete parsed domain representation of .context/state.md."""
+
     model_config = ConfigDict(frozen=True)
 
     milestone: Milestone = Field(default_factory=Milestone)
@@ -63,6 +68,7 @@ class StateContext(BaseModel):
 
 class ADRRecord(BaseModel):
     """Single Architecture Decision Record from .context/decisions.md."""
+
     model_config = ConfigDict(frozen=True)
 
     id: str = Field(description="Identifier e.g. ADR-001")
@@ -77,6 +83,7 @@ class ADRRecord(BaseModel):
 
 class DecisionsContext(BaseModel):
     """Complete parsed domain representation of .context/decisions.md."""
+
     model_config = ConfigDict(frozen=True)
 
     records: tuple[ADRRecord, ...] = Field(default_factory=tuple)
@@ -86,6 +93,7 @@ class DecisionsContext(BaseModel):
 
 class SystemContext(BaseModel):
     """Complete parsed domain representation of .context/system.md."""
+
     model_config = ConfigDict(frozen=True)
 
     project_name: str = Field(default="")
@@ -100,6 +108,7 @@ class SystemContext(BaseModel):
 
 class WorkspaceOverview(BaseModel):
     """Aggregate domain view of a project's complete multi-agent context."""
+
     model_config = ConfigDict(frozen=True)
 
     workspace_path: str

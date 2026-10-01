@@ -1,6 +1,5 @@
 """Pytest configuration and shared fixtures for Context Cockpit tests."""
 
-
 SAMPLE_STATE_MD = """# 项目当前工作看板 (Dynamic State)
 
 ## 1. 当前里程碑

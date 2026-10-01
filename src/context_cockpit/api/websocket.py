@@ -31,13 +31,15 @@ async def websocket_events_endpoint(websocket: WebSocket) -> None:
 
             if event_task in done:
                 event: ContextChangeEvent = event_task.result()
-                await websocket.send_json({
-                    "type": "context_updated",
-                    "filename": event.filename,
-                    "event_type": event.event_type,
-                    "timestamp": event.timestamp,
-                    "metadata": event.metadata,
-                })
+                await websocket.send_json(
+                    {
+                        "type": "context_updated",
+                        "filename": event.filename,
+                        "event_type": event.event_type,
+                        "timestamp": event.timestamp,
+                        "metadata": event.metadata,
+                    }
+                )
 
             if recv_task in done:
                 data = recv_task.result()

@@ -614,14 +614,12 @@
               <span style="font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: var(--bg-surface-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle);">
                 负责人: <strong style="color: #38bdf8;">{{ overview.state.milestone.active_agent || '未分配' }}</strong>
               </span>
-              <button @click="openEditMilestone" class="btn-edit-milestone" title="点击编辑当前里程碑目标与负责人">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                <span>编辑里程碑</span>
+              <button @click="openEditMilestone" class="btn btn-brand" style="padding: 4px 12px; font-size: 12px; border-radius: var(--radius-sm);">
+                编辑里程碑
               </button>
             </div>
           </div>
+
 
 
           <h2 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 12px;">
@@ -1060,9 +1058,16 @@
 
         const handleDeleteTask = async (task) => {
           try {
-            const res = await fetch(`/api/tasks/${task.id}`, {
+            let res = await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, {
               method: 'DELETE',
             });
+            if (!res.ok) {
+              res = await fetch('/api/tasks/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_id: task.id })
+              });
+            }
             if (res.ok) {
               const updatedState = await res.json();
               overview.value.state = updatedState;
@@ -1074,6 +1079,7 @@
             triggerToast('网络通信异常');
           }
         };
+
 
 
         const saveHandoverNote = async () => {

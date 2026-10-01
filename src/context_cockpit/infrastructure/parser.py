@@ -21,10 +21,18 @@ TASK_REGEX: Final[re.Pattern[str]] = re.compile(
 )
 
 # Strict heading pattern for sections (supports #, ##, ### according to ADR-004)
-HEADING_MILESTONE: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(1\.|.*当前里程碑|.*Milestone)", re.IGNORECASE)
-HEADING_TASKS: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(2\.|.*任务清单|.*Task)", re.IGNORECASE)
-HEADING_BLOCKERS: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(3\.|.*当前阻塞|.*Blocker)", re.IGNORECASE)
-HEADING_HANDOVER: Final[re.Pattern[str]] = re.compile(r"^#{1,3}\s+(4\.|.*交接便签|.*Handover)", re.IGNORECASE)
+HEADING_MILESTONE: Final[re.Pattern[str]] = re.compile(
+    r"^#{1,3}\s+(1\.|.*当前里程碑|.*Milestone)", re.IGNORECASE
+)
+HEADING_TASKS: Final[re.Pattern[str]] = re.compile(
+    r"^#{1,3}\s+(2\.|.*任务清单|.*Task)", re.IGNORECASE
+)
+HEADING_BLOCKERS: Final[re.Pattern[str]] = re.compile(
+    r"^#{1,3}\s+(3\.|.*当前阻塞|.*Blocker)", re.IGNORECASE
+)
+HEADING_HANDOVER: Final[re.Pattern[str]] = re.compile(
+    r"^#{1,3}\s+(4\.|.*交接便签|.*Handover)", re.IGNORECASE
+)
 
 # Persistent inline task ID pattern (e.g. <!-- id:task-a8f3d -->)
 INLINE_ID_REGEX: Final[re.Pattern[str]] = re.compile(r"<!--\s*id:(?P<id>[\w-]+)\s*-->")
@@ -139,7 +147,12 @@ class MarkdownContextParser:
                     m = re.search(r"[:：]\s*(\S+)", hline)
                     if m:
                         author = m.group(1).strip("*_ >")
-                elif "交接时间" in hline or "时间" in hline or "Timestamp" in hline or "Time" in hline:
+                elif (
+                    "交接时间" in hline
+                    or "时间" in hline
+                    or "Timestamp" in hline
+                    or "Time" in hline
+                ):
                     m = re.search(r"[:：]\s*(.+)$", hline)
                     if m:
                         timestamp = m.group(1).strip("*_ >")
@@ -248,7 +261,6 @@ class MarkdownContextParser:
         return "\n".join(new_lines) + ending
 
     def add_task(self, raw_text: str, task_text: str) -> str:
-
         """Adds a new task to the Task Checklist section while preserving surrounding format."""
         clean_text = task_text.strip()
         if not INLINE_ID_REGEX.search(clean_text):
@@ -343,13 +355,17 @@ class MarkdownContextParser:
                 in_milestone = False
 
             if in_milestone:
-                if ("当前阶段目标" in line or "里程碑" in line or "Target" in line or "Goal" in line) and not updated_title:
+                if (
+                    "当前阶段目标" in line or "里程碑" in line or "Target" in line or "Goal" in line
+                ) and not updated_title:
                     prefix = line.split("：")[0] if "：" in line else line.split(":")[0]
                     sep = "：" if "：" in line else ": "
                     new_lines.append(f"{prefix}{sep}{title.strip()}")
                     updated_title = True
                     continue
-                elif ("负责人" in line or "Active Agent" in line or "Owner" in line) and not updated_agent:
+                elif (
+                    "负责人" in line or "Active Agent" in line or "Owner" in line
+                ) and not updated_agent:
                     prefix = line.split("：")[0] if "：" in line else line.split(":")[0]
                     sep = "：" if "：" in line else ": "
                     new_lines.append(f"{prefix}{sep}{active_agent.strip()}")
@@ -360,7 +376,6 @@ class MarkdownContextParser:
 
         ending = "\n" if raw_text.endswith("\n") else ""
         return "\n".join(new_lines) + ending
-
 
     # -------------------------------------------------------------------------
     # decisions.md Parsing and Mutation
@@ -382,8 +397,12 @@ class MarkdownContextParser:
             date_m = re.search(r"-\s*\*\*日期\*\*\s*[:：]\s*(.+)", block)
             proposer_m = re.search(r"-\s*\*\*提议\s*Agent\*\*\s*[:：]\s*(.+)", block)
             context_m = re.search(r"-\s*\*\*背景\*\*\s*[:：]\s*(.+)", block)
-            decision_m = re.search(r"-\s*\*\*决策内容\*\*\s*[:：]\s*([\s\S]+?)(?=\n-\s*\*\*影响|\Z)", block)
-            consequence_m = re.search(r"-\s*\*\*影响\*\*\s*[:：]\s*([\s\S]+?)(?=\n---|###|\Z)", block)
+            decision_m = re.search(
+                r"-\s*\*\*决策内容\*\*\s*[:：]\s*([\s\S]+?)(?=\n-\s*\*\*影响|\Z)", block
+            )
+            consequence_m = re.search(
+                r"-\s*\*\*影响\*\*\s*[:：]\s*([\s\S]+?)(?=\n---|###|\Z)", block
+            )
 
             records.append(
                 ADRRecord(
@@ -475,7 +494,9 @@ class MarkdownContextParser:
                 elif "技术栈" in s or "Stack" in s:
                     m = re.search(r"[:：]\s*(.+)", s)
                     if m:
-                        tech_stack = [item.strip() for item in m.group(1).split("/") if item.strip()]
+                        tech_stack = [
+                            item.strip() for item in m.group(1).split("/") if item.strip()
+                        ]
 
             elif current_sec == "env":
                 if "启动命令" in s or "运行命令" in s or "Run" in s:

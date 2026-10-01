@@ -50,6 +50,7 @@ def ensure_workspace_initialized(workspace: Path) -> None:
         context_dir.mkdir(parents=True, exist_ok=True)
 
     from context_cockpit.infrastructure.storage import AtomicStorage
+
     storage = AtomicStorage(lock_timeout=5.0)
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -123,7 +124,6 @@ def ensure_workspace_initialized(workspace: Path) -> None:
         )
 
 
-
 def print_mcp_config(workspace_path: Path) -> None:
     """Outputs copy-pastable MCP client JSON configuration."""
     project_root = Path(__file__).parent.parent.parent.resolve()
@@ -155,7 +155,6 @@ def main() -> None:
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
     parser = argparse.ArgumentParser(
-
         description="Context Cockpit - Industrial Multi-Agent Developer Cockpit & MCP Server",
     )
     parser.add_argument(
@@ -229,9 +228,11 @@ def main() -> None:
 
     # Schedule browser opening
     if not args.no_open:
+
         def _open():
             time.sleep(1.0)
             webbrowser.open(url)
+
         threading.Thread(target=_open, daemon=True).start()
 
     app = create_app(workspace_path)

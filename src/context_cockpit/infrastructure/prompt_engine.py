@@ -36,28 +36,41 @@ class DoubaoPromptStrategy(BasePromptStrategy):
         decisions: DecisionsContext,
         instruction: str = "",
     ) -> str:
-        rules_text = "\n".join(f"- {r}" for r in system.critical_rules) if system.critical_rules else "- 遵守既定架构，不破坏既有设计。"
+        rules_text = (
+            "\n".join(f"- {r}" for r in system.critical_rules)
+            if system.critical_rules
+            else "- 遵守既定架构，不破坏既有设计。"
+        )
 
         pending_tasks = [t for t in state.tasks if not t.completed]
-        tasks_text = "\n".join(f"- [ ] {t.text}" for t in pending_tasks) if pending_tasks else "- 暂无待处理任务"
+        tasks_text = (
+            "\n".join(f"- [ ] {t.text}" for t in pending_tasks)
+            if pending_tasks
+            else "- 暂无待处理任务"
+        )
 
         recent_adrs = decisions.records[-3:] if decisions.records else []
-        adr_text = "\n".join(f"- **{a.id} {a.title}**：{a.decision}" for a in recent_adrs) or "- 无特殊决策约束"
+        adr_text = (
+            "\n".join(f"- **{a.id} {a.title}**：{a.decision}" for a in recent_adrs)
+            or "- 无特殊决策约束"
+        )
 
-        handover_text = state.handover_note.body if state.handover_note else "无上一个 Agent 的特别留言。"
+        handover_text = (
+            state.handover_note.body if state.handover_note else "无上一个 Agent 的特别留言。"
+        )
         handover_author = state.handover_note.author if state.handover_note else "上个 Agent"
 
         custom_instruction = f"\n### 本次特别要求\n{instruction}\n" if instruction.strip() else ""
 
-        return f"""你好，豆包！你现在正在与团队共同开发【{system.project_name or '本项目'}】。
+        return f"""你好，豆包！你现在正在与团队共同开发【{system.project_name or "本项目"}】。
 本项目严格执行 Git 黑板协作模式（通过 `.context/` 共享状态）。请仔细阅读以下上下文并协助推进工作：
 
 ---
 
 ### 1. 全局规范与工程红线
-- **核心技术栈**：{', '.join(system.tech_stack) if system.tech_stack else '参考项目配置'}
-- **启动命令**：`{system.run_command or '未指定'}`
-- **测试命令**：`{system.test_command or '未指定'}`
+- **核心技术栈**：{", ".join(system.tech_stack) if system.tech_stack else "参考项目配置"}
+- **启动命令**：`{system.run_command or "未指定"}`
+- **测试命令**：`{system.test_command or "未指定"}`
 - **红线约束**：
 {rules_text}
 
@@ -65,7 +78,7 @@ class DoubaoPromptStrategy(BasePromptStrategy):
 {adr_text}
 
 ### 3. 上一个 Agent（{handover_author}）的交接指引
-> {handover_text.replace(chr(10), chr(10) + '> ')}
+> {handover_text.replace(chr(10), chr(10) + "> ")}
 
 ### 4. 当前待办任务清单
 {tasks_text}
@@ -96,7 +109,7 @@ class CursorPromptStrategy(BasePromptStrategy):
         custom = f"\n[User Directive]: {instruction}\n" if instruction.strip() else ""
 
         return f"""# Project Context: {system.project_name}
-Tech Stack: {', '.join(system.tech_stack)}
+Tech Stack: {", ".join(system.tech_stack)}
 Run: `{system.run_command}` | Test: `{system.test_command}`
 
 ## Constraints & Rules
@@ -159,7 +172,9 @@ class GenericPromptStrategy(BasePromptStrategy):
     ) -> str:
         rules_text = "\n".join(f"- {r}" for r in system.critical_rules) or "- 保持既有代码规范"
         pending_tasks = "\n".join(f"- [ ] {t.text}" for t in state.tasks if not t.completed)
-        recent_adrs = "\n".join(f"- [{a.id}] {a.title}: {a.decision}" for a in decisions.records[-3:])
+        recent_adrs = "\n".join(
+            f"- [{a.id}] {a.title}: {a.decision}" for a in decisions.records[-3:]
+        )
 
         custom = f"\n### 当前指令\n{instruction}\n" if instruction.strip() else ""
 
@@ -168,19 +183,19 @@ class GenericPromptStrategy(BasePromptStrategy):
 本项目使用 Git 黑板协作模式，请根据当前项目进展推进任务：
 
 ### 系统规范
-- **技术栈**：{', '.join(system.tech_stack)}
+- **技术栈**：{", ".join(system.tech_stack)}
 - **命令**：启动 `{system.run_command}`，测试 `{system.test_command}`
 - **红线约束**：
 {rules_text}
 
 ### 架构决策 (ADR)
-{recent_adrs or '暂无'}
+{recent_adrs or "暂无"}
 
 ### 上一个 Agent 的交接便签
-{state.handover_note.body if state.handover_note else '暂无'}
+{state.handover_note.body if state.handover_note else "暂无"}
 
 ### 待办任务清单
-{pending_tasks or '- 任务已全部完成'}
+{pending_tasks or "- 任务已全部完成"}
 {custom}
 请基于上述信息实现对应功能，并更新交接说明。
 """
@@ -220,4 +235,3 @@ class PromptEngine:
     ) -> str:
         strategy = cls._strategies.get(agent_type, cls._generic)
         return strategy.synthesize(system, state, decisions, instruction)
-

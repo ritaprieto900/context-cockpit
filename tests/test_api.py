@@ -148,7 +148,3 @@ async def test_delete_task_endpoint(mock_workspace: Path):
         # Attempt deleting already deleted task returns 404
         retry_resp = await client.delete(f"/api/tasks/{task_id}")
         assert retry_resp.status_code == 404
-
-
-
-

@@ -77,7 +77,9 @@ class ContextService:
     async def toggle_task(self, task_id: str, completed: bool) -> StateContext:
         def _transactional_toggle() -> tuple[str, str]:
             with self.storage.transaction(self.workspace.state_file) as (raw_text, _, save):
-                updated_text = self.parser.toggle_task(raw_text, task_id=task_id, completed=completed)
+                updated_text = self.parser.toggle_task(
+                    raw_text, task_id=task_id, completed=completed
+                )
                 new_hash = save(updated_text)
                 return updated_text, new_hash
 
@@ -132,7 +134,9 @@ class ContextService:
 
         def _transactional_handover() -> tuple[str, str]:
             with self.storage.transaction(self.workspace.state_file) as (raw_text, _, save):
-                updated_text = self.parser.update_handover_note(raw_text, author=author, note_body=body)
+                updated_text = self.parser.update_handover_note(
+                    raw_text, author=author, note_body=body
+                )
                 new_hash = save(updated_text)
                 return updated_text, new_hash
 
@@ -150,7 +154,9 @@ class ContextService:
     async def update_milestone(self, title: str, active_agent: str) -> StateContext:
         def _transactional_milestone() -> tuple[str, str]:
             with self.storage.transaction(self.workspace.state_file) as (raw_text, _, save):
-                updated_text = self.parser.update_milestone(raw_text, title=title, active_agent=active_agent)
+                updated_text = self.parser.update_milestone(
+                    raw_text, title=title, active_agent=active_agent
+                )
                 new_hash = save(updated_text)
                 return updated_text, new_hash
 
@@ -160,7 +166,11 @@ class ContextService:
             ContextChangeEvent(
                 filename="state.md",
                 event_type="api_update",
-                metadata={"action": "update_milestone", "title": title, "active_agent": active_agent},
+                metadata={
+                    "action": "update_milestone",
+                    "title": title,
+                    "active_agent": active_agent,
+                },
             )
         )
         return self.parser.parse_state(updated_text, content_hash=new_hash)

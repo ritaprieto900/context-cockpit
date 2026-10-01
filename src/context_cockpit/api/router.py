@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from context_cockpit.api.schemas import (
     AddTaskRequest,
     CreateADRRequest,
+    DeleteTaskRequest,
     GeneratePromptRequest,
     GeneratePromptResponse,
     ToggleTaskRequest,
@@ -96,6 +97,15 @@ async def delete_task(task_id: str, service: ServiceDep) -> StateContext:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
 
 
+@router.post("/tasks/delete", response_model=StateContext)
+async def delete_task_post(payload: DeleteTaskRequest, service: ServiceDep) -> StateContext:
+    try:
+        return await service.delete_task(task_id=payload.task_id)
+    except TaskNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.message)
+    except CockpitError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
+
 
 @router.post("/handover", response_model=StateContext)
 async def update_handover(payload: UpdateHandoverRequest, service: ServiceDep) -> StateContext:
@@ -108,7 +118,9 @@ async def update_handover(payload: UpdateHandoverRequest, service: ServiceDep) -
 @router.post("/milestone", response_model=StateContext)
 async def update_milestone(payload: UpdateMilestoneRequest, service: ServiceDep) -> StateContext:
     try:
-        return await service.update_milestone(title=payload.title, active_agent=payload.active_agent)
+        return await service.update_milestone(
+            title=payload.title, active_agent=payload.active_agent
+        )
     except CockpitError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
 
@@ -128,7 +140,9 @@ async def create_adr(payload: CreateADRRequest, service: ServiceDep) -> Decision
 
 
 @router.post("/prompt", response_model=GeneratePromptResponse)
-async def generate_prompt(payload: GeneratePromptRequest, service: ServiceDep) -> GeneratePromptResponse:
+async def generate_prompt(
+    payload: GeneratePromptRequest, service: ServiceDep
+) -> GeneratePromptResponse:
     try:
         result = await asyncio.to_thread(
             service.generate_prompt,

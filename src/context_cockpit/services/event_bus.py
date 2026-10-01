@@ -11,6 +11,7 @@ DEFAULT_QUEUE_MAXSIZE: Final[int] = 100
 @dataclass(frozen=True)
 class ContextChangeEvent:
     """Event emitted whenever a .context/ file changes on disk or via API."""
+
     filename: str
     event_type: str  # 'disk_modified', 'api_update'
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())

@@ -67,4 +67,6 @@ async def test_concurrent_task_toggles_no_lost_updates(tmp_path: Path):
     # Assert: All 8 tasks MUST be completed, zero Lost Updates!
     final_state = service.get_state()
     completed_count = sum(1 for t in final_state.tasks if t.completed)
-    assert completed_count == 8, f"Expected 8 completed tasks, got {completed_count}. Lost update occurred!"
+    assert completed_count == 8, (
+        f"Expected 8 completed tasks, got {completed_count}. Lost update occurred!"
+    )

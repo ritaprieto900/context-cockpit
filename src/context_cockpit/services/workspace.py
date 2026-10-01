@@ -8,6 +8,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class GitMetadata:
     """Current Git workspace status."""
+
     is_git: bool
     branch: str | None = None
     commit_hash: str | None = None
