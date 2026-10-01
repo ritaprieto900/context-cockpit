@@ -234,12 +234,29 @@
       color: var(--text-main);
       font-size: 13px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.2s ease;
     }
     input:focus, textarea:focus, select:focus {
       border-color: var(--brand);
       box-shadow: 0 0 0 1px var(--brand);
     }
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 14px 14px;
+      padding-right: 32px;
+      cursor: pointer;
+    }
+    select option {
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 8px;
+    }
+
 
     .btn {
       display: inline-flex;
@@ -435,10 +452,16 @@
             <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--brand); letter-spacing: 0.05em;">
               🎯 当前活跃里程碑
             </span>
-            <span style="font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: var(--bg-surface-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle);">
-              负责人: <strong style="color: #38bdf8;">{{ overview.state.milestone.active_agent || '未分配' }}</strong>
-            </span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: var(--bg-surface-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle);">
+                负责人: <strong style="color: #38bdf8;">{{ overview.state.milestone.active_agent || '未分配' }}</strong>
+              </span>
+              <button @click="openEditMilestone" style="background: rgba(30, 41, 59, 0.8); border: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 11px; padding: 2px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                ✏️ 修改
+              </button>
+            </div>
           </div>
+
 
           <h2 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 12px;">
             {{ overview.state.milestone.title || '尚未设置当前阶段目标' }}
@@ -535,12 +558,21 @@
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <label style="font-size: 12px; font-weight: 600;">接班目标 Agent：</label>
-              <select v-model="selectedAgent" style="width: auto; padding: 4px 8px;">
-                <option value="doubao">豆包 (Doubao) [中文结构优化]</option>
-                <option value="cursor">Cursor Composer / Agent</option>
-                <option value="claude">Claude Code CLI</option>
-                <option value="generic">通用大模型 (ChatGPT / DeepSeek)</option>
+              <select v-model="selectedAgent" style="width: auto; max-width: 250px; padding: 6px 32px 6px 12px; font-size: 12px;">
+                <option value="cursor">⚡ Cursor (Composer / Agent)</option>
+                <option value="claude">🤖 Claude Code CLI</option>
+                <option value="windsurf">🌊 Windsurf (Cascade)</option>
+                <option value="chatgpt">💬 ChatGPT (Canvas / Code)</option>
+                <option value="deepseek">🧠 DeepSeek Coder</option>
+                <option value="copilot">🐙 GitHub Copilot</option>
+                <option value="cline">🛠️ Cline / Roo Code</option>
+                <option value="trae">🚀 Trae</option>
+                <option value="doubao">🥟 豆包 (Doubao) [中文结构]</option>
+                <option value="aider">⌨️ Aider CLI</option>
+                <option value="antigravity">🪐 Google Antigravity</option>
+                <option value="generic">🌐 通用大模型 / Other LLM</option>
               </select>
+
             </div>
 
             <input v-model="customDirective" type="text" placeholder="可选额外指令 (例如：优先编写测试)..." />
@@ -618,6 +650,47 @@
       </div>
     </div>
 
+    <!-- Modal: Edit Milestone -->
+    <div v-if="showEditMilestoneModal" class="modal-overlay">
+      <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border-subtle);">
+          <h3 style="font-size: 15px; font-weight: 700;">🎯 修改里程碑与当前负责人</h3>
+          <button @click="showEditMilestoneModal = false" style="background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer;">✕</button>
+        </div>
+        <form @submit.prevent="handleUpdateMilestone" style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">阶段目标 / 里程碑名称</label>
+            <input v-model="editMilestoneTitle" required type="text" placeholder="例如：完成核心模块开发与单元测试" />
+          </div>
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">当前负责人 (Active Agent)</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+              <select v-model="editMilestoneAgent" style="flex: 1;">
+                <option value="Cursor">Cursor (Composer / Agent)</option>
+                <option value="Claude Code">Claude Code CLI</option>
+                <option value="Windsurf">Windsurf (Cascade)</option>
+                <option value="ChatGPT">ChatGPT (Canvas / Codex)</option>
+                <option value="DeepSeek">DeepSeek (Coder)</option>
+                <option value="GitHub Copilot">GitHub Copilot</option>
+                <option value="Cline">Cline / Roo Code</option>
+                <option value="Trae">Trae</option>
+                <option value="豆包">豆包 (Doubao)</option>
+                <option value="Aider">Aider CLI</option>
+                <option value="Antigravity">Antigravity</option>
+                <option value="System">System (系统通用)</option>
+              </select>
+            </div>
+            <input v-model="editMilestoneAgent" type="text" placeholder="或手动输入任意自定义名称..." />
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+            <button type="button" @click="showEditMilestoneModal = false" class="btn btn-secondary">取消</button>
+            <button type="submit" class="btn btn-brand">保存修改</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
   </div>
 
   <!-- Local Vue 3 Application Script -->
@@ -644,7 +717,7 @@
         });
 
         const newTaskText = ref('');
-        const selectedAgent = ref('doubao');
+        const selectedAgent = ref('cursor');
         const customDirective = ref('');
         const copyingPrompt = ref(false);
 
@@ -652,8 +725,42 @@
         const editHandoverAuthor = ref('');
         const editHandoverBody = ref('');
 
+        const showEditMilestoneModal = ref(false);
+        const editMilestoneTitle = ref('');
+        const editMilestoneAgent = ref('Cursor');
+
+        const openEditMilestone = () => {
+          editMilestoneTitle.value = overview.value.state?.milestone?.title || '';
+          editMilestoneAgent.value = overview.value.state?.milestone?.active_agent || 'Cursor';
+          showEditMilestoneModal.value = true;
+        };
+
+        const handleUpdateMilestone = async () => {
+          try {
+            const res = await fetch('/api/milestone', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: editMilestoneTitle.value,
+                active_agent: editMilestoneAgent.value || 'System'
+              })
+            });
+            if (res.ok) {
+              const updatedState = await res.json();
+              overview.value.state = updatedState;
+              showEditMilestoneModal.value = false;
+              triggerToast('已更新里程碑与负责人');
+            } else {
+              triggerToast('更新里程碑失败');
+            }
+          } catch (err) {
+            triggerToast('网络通信异常');
+          }
+        };
+
         const showAddADRModal = ref(false);
-        const newADR = ref({ title: '', proposer: 'Antigravity', context: '', decision: '', consequence: '' });
+        const newADR = ref({ title: '', proposer: 'System', context: '', decision: '', consequence: '' });
+
 
         const toast = ref({ show: false, message: '' });
         const triggerToast = (message) => {
@@ -836,6 +943,11 @@
           showEditHandover,
           editHandoverAuthor,
           editHandoverBody,
+          showEditMilestoneModal,
+          editMilestoneTitle,
+          editMilestoneAgent,
+          openEditMilestone,
+          handleUpdateMilestone,
           showAddADRModal,
           newADR,
           toast,
@@ -850,6 +962,7 @@
           copyHandoverPrompt,
           handleCreateADR,
         };
+
       }
     }).mount('#app');
   </script>

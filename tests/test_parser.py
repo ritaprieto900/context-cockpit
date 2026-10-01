@@ -233,3 +233,25 @@ def test_persistent_inline_task_id_prevents_index_shifting():
     assert state3.tasks[1].completed is True
     assert "- [x] 原始任务A <!-- id:task-perm-01 -->" in toggled_md
 
+
+def test_update_milestone_updates_title_and_active_agent():
+    parser = MarkdownContextParser()
+    initial_md = """# 项目当前工作看板 (Dynamic State)
+
+## 1. 当前里程碑
+- **当前阶段目标**：完成核心架构与测试
+- **当前负责人 (Active Agent)**：Antigravity
+
+## 2. 任务清单 (Task Checklist)
+- [ ] 任务1
+"""
+    updated_md = parser.update_milestone(initial_md, title="发布 1.0 版本", active_agent="Cursor")
+    state = parser.parse_state(updated_md)
+
+    assert state.milestone.title == "发布 1.0 版本"
+    assert state.milestone.active_agent == "Cursor"
+    assert "- **当前阶段目标**：发布 1.0 版本" in updated_md
+    assert "- **当前负责人 (Active Agent)**：Cursor" in updated_md
+    assert "- [ ] 任务1" in updated_md
+
+

@@ -284,6 +284,43 @@ class MarkdownContextParser:
             ]
             return raw_text.rstrip() + "\n" + "\n".join(section)
 
+    def update_milestone(self, raw_text: str, title: str, active_agent: str) -> str:
+        """Updates the milestone target and active agent in-place while preserving formatting."""
+        lines = raw_text.splitlines()
+        new_lines: list[str] = []
+        in_milestone = False
+        updated_title = False
+        updated_agent = False
+
+        for line in lines:
+            stripped = line.strip()
+            if HEADING_MILESTONE.match(stripped):
+                in_milestone = True
+                new_lines.append(line)
+                continue
+            elif in_milestone and (stripped.startswith("## ") or stripped.startswith("---")):
+                in_milestone = False
+
+            if in_milestone:
+                if ("当前阶段目标" in line or "里程碑" in line or "Target" in line or "Goal" in line) and not updated_title:
+                    prefix = line.split("：")[0] if "：" in line else line.split(":")[0]
+                    sep = "：" if "：" in line else ": "
+                    new_lines.append(f"{prefix}{sep}{title.strip()}")
+                    updated_title = True
+                    continue
+                elif ("负责人" in line or "Active Agent" in line or "Owner" in line) and not updated_agent:
+                    prefix = line.split("：")[0] if "：" in line else line.split(":")[0]
+                    sep = "：" if "：" in line else ": "
+                    new_lines.append(f"{prefix}{sep}{active_agent.strip()}")
+                    updated_agent = True
+                    continue
+
+            new_lines.append(line)
+
+        ending = "\n" if raw_text.endswith("\n") else ""
+        return "\n".join(new_lines) + ending
+
+
     # -------------------------------------------------------------------------
     # decisions.md Parsing and Mutation
     # -------------------------------------------------------------------------

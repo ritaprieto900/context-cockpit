@@ -106,3 +106,25 @@ async def test_ipv6_loopback_host_accepted(mock_workspace: Path):
         assert resp.status_code == 200
 
 
+@pytest.mark.asyncio
+async def test_update_milestone_endpoint(mock_workspace: Path):
+    app = create_app(mock_workspace)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://127.0.0.1") as client:
+        resp = await client.post(
+            "/api/milestone",
+            json={"title": "完成阶段性演练", "active_agent": "Claude Code"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["milestone"]["title"] == "完成阶段性演练"
+        assert data["milestone"]["active_agent"] == "Claude Code"
+
+        # Verify persistence via GET
+        get_resp = await client.get("/api/overview")
+        assert get_resp.status_code == 200
+        overview = get_resp.json()
+        assert overview["state"]["milestone"]["title"] == "完成阶段性演练"
+        assert overview["state"]["milestone"]["active_agent"] == "Claude Code"
+
+
+

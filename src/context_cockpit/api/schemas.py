@@ -19,6 +19,11 @@ class UpdateHandoverRequest(BaseModel):
     body: str = Field(..., min_length=1, description="Markdown body of the handover note")
 
 
+class UpdateMilestoneRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200, description="Milestone target title")
+    active_agent: str = Field(default="System", max_length=100, description="Active agent responsible")
+
+
 class CreateADRRequest(BaseModel):
     title: str = Field(..., min_length=3, max_length=200, description="Title of the architecture decision")
     proposer: str = Field(default="Antigravity", max_length=100)

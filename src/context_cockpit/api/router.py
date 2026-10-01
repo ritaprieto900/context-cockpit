@@ -12,6 +12,7 @@ from context_cockpit.api.schemas import (
     GeneratePromptResponse,
     ToggleTaskRequest,
     UpdateHandoverRequest,
+    UpdateMilestoneRequest,
 )
 from context_cockpit.domain.exceptions import CockpitError, ContextNotFoundError, TaskNotFoundError
 from context_cockpit.domain.models import (
@@ -89,6 +90,14 @@ async def add_task(payload: AddTaskRequest, service: ServiceDep) -> StateContext
 async def update_handover(payload: UpdateHandoverRequest, service: ServiceDep) -> StateContext:
     try:
         return await service.update_handover_note(author=payload.author, body=payload.body)
+    except CockpitError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
+
+
+@router.post("/milestone", response_model=StateContext)
+async def update_milestone(payload: UpdateMilestoneRequest, service: ServiceDep) -> StateContext:
+    try:
+        return await service.update_milestone(title=payload.title, active_agent=payload.active_agent)
     except CockpitError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
 

@@ -189,13 +189,24 @@ class GenericPromptStrategy(BasePromptStrategy):
 class PromptEngine:
     """Factory and dispatcher for prompt synthesis strategies."""
 
+    _doubao = DoubaoPromptStrategy()
+    _cursor = CursorPromptStrategy()
+    _claude = ClaudePromptStrategy()
+    _generic = GenericPromptStrategy()
+
     _strategies: Final[dict[AgentType, BasePromptStrategy]] = {
-        AgentType.DOUBAO: DoubaoPromptStrategy(),
-        AgentType.CURSOR: CursorPromptStrategy(),
-        AgentType.CLAUDE: ClaudePromptStrategy(),
-        AgentType.GENERIC: GenericPromptStrategy(),
-        AgentType.DEEPSEEK: GenericPromptStrategy(),
-        AgentType.ANTIGRAVITY: GenericPromptStrategy(),
+        AgentType.DOUBAO: _doubao,
+        AgentType.CURSOR: _cursor,
+        AgentType.WINDSURF: _cursor,
+        AgentType.TRAE: _cursor,
+        AgentType.COPILOT: _cursor,
+        AgentType.CLAUDE: _claude,
+        AgentType.CLINE: _claude,
+        AgentType.AIDER: _cursor,
+        AgentType.CHATGPT: _generic,
+        AgentType.DEEPSEEK: _generic,
+        AgentType.ANTIGRAVITY: _generic,
+        AgentType.GENERIC: _generic,
     }
 
     @classmethod
@@ -207,5 +218,6 @@ class PromptEngine:
         decisions: DecisionsContext,
         instruction: str = "",
     ) -> str:
-        strategy = cls._strategies.get(agent_type, cls._strategies[AgentType.GENERIC])
+        strategy = cls._strategies.get(agent_type, cls._generic)
         return strategy.synthesize(system, state, decisions, instruction)
+

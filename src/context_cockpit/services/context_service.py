@@ -128,6 +128,24 @@ class ContextService:
         )
         return self.parser.parse_state(updated_text, content_hash=new_hash)
 
+    async def update_milestone(self, title: str, active_agent: str) -> StateContext:
+        def _transactional_milestone() -> tuple[str, str]:
+            with self.storage.transaction(self.workspace.state_file) as (raw_text, _, save):
+                updated_text = self.parser.update_milestone(raw_text, title=title, active_agent=active_agent)
+                new_hash = save(updated_text)
+                return updated_text, new_hash
+
+        updated_text, new_hash = await asyncio.to_thread(_transactional_milestone)
+
+        await self.event_bus.publish(
+            ContextChangeEvent(
+                filename="state.md",
+                event_type="api_update",
+                metadata={"action": "update_milestone", "title": title, "active_agent": active_agent},
+            )
+        )
+        return self.parser.parse_state(updated_text, content_hash=new_hash)
+
     async def create_decision(
         self,
         title: str,

@@ -7,11 +7,17 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class AgentType(StrEnum):
     """Known agent types for optimized prompt strategy synthesis."""
-    ANTIGRAVITY = "antigravity"
-    DOUBAO = "doubao"
     CURSOR = "cursor"
     CLAUDE = "claude"
+    WINDSURF = "windsurf"
+    CHATGPT = "chatgpt"
     DEEPSEEK = "deepseek"
+    COPILOT = "copilot"
+    CLINE = "cline"
+    TRAE = "trae"
+    DOUBAO = "doubao"
+    ANTIGRAVITY = "antigravity"
+    AIDER = "aider"
     GENERIC = "generic"
 
 
